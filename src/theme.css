@@ -1,0 +1,118 @@
+/* Desktop sidebar offset */
+@media (min-width: 992px) {
+  .desktop-content-offset {
+    padding-left: 240px;
+  }
+}
+
+:root {
+  --color-primary: #ACC8A2; /* Soft Sage */
+  --color-dark: #1A2517;    /* Deep Olive */
+  --color-cream: #F5F0E8;   /* Cream */
+  --color-white: #FFFFFF;
+  --color-gray: #6B7280;
+
+  --bg-color: var(--color-cream);
+  --text-color: var(--color-dark);
+  --card-bg: var(--color-white);
+  --sidebar-bg: var(--color-dark);
+  --sidebar-text: var(--color-cream);
+  --sidebar-active-bg: var(--color-primary);
+  --sidebar-active-text: var(--color-dark);
+}
+
+body.dark {
+  --bg-color: var(--color-dark);
+  --text-color: var(--color-cream);
+  --card-bg: #2A3626;
+  --sidebar-bg: #141D12;
+  --sidebar-text: var(--color-cream);
+  --sidebar-active-bg: var(--color-primary);
+  --sidebar-active-text: var(--color-dark);
+}
+
+body {
+  background-color: var(--bg-color) !important;
+  color: var(--text-color) !important;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+}
+
+/* Bootstrap Overrides */
+.btn-primary {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-dark) !important;
+  font-weight: 600;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+  background-color: #9ab98f !important;
+  border-color: #9ab98f !important;
+  color: var(--color-dark) !important;
+  box-shadow: 0 0 15px rgba(172, 200, 162, 0.4);
+}
+
+.btn-outline-primary {
+  color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary.active {
+  background-color: var(--color-primary) !important;
+  color: var(--color-dark) !important;
+}
+
+.card {
+  background-color: var(--card-bg) !important;
+  border: none !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05) !important;
+  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+body.dark .card {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2) !important;
+}
+
+.form-control,
+.form-select,
+.input-group-text {
+  background-color: var(--bg-color) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  color: var(--text-color) !important;
+  border-radius: 10px;
+  font-size: 15px;
+  padding: 12px 16px;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 0.25rem rgba(172, 200, 162, 0.25) !important;
+  background-color: var(--bg-color) !important;
+  color: var(--text-color) !important;
+}
+
+body.dark .form-control,
+body.dark .form-select,
+body.dark .input-group-text {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background-color: #222f1e !important;
+  color: var(--text-color) !important;
+}
+
+/* Utilities */
+.text-sage  { color: var(--color-primary) !important; }
+.bg-olive   { background-color: var(--color-dark) !important; }
+.bg-sage    { background-color: var(--color-primary) !important; }
