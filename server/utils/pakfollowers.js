@@ -17,14 +17,15 @@ const callPakfollowersAPI = async (data, retries = 3) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const response = await axios.post(url, formData.toString(), {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        timeout: 8000,  // 8s timeout per attempt
       });
       return response.data;
     } catch (error) {
       if (attempt === retries) {
         throw new Error(`Pakfollowers API failed after ${retries} attempts: ${error.message}`);
       }
-      await new Promise(res => setTimeout(res, 1000 * attempt)); // exponential backoff
+      await new Promise(res => setTimeout(res, 500 * attempt));
     }
   }
 };

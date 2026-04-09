@@ -1,3 +1,11 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, '.env') });
+
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -6,18 +14,13 @@ import os from 'os';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
-import rateLimit from 'express-rate-limit';
-import 'dotenv/config';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
+import compression from 'compression';
+import helmet from 'helmet';
+import bcrypt from 'bcryptjs';
+import Redis from 'ioredis';
 import orderRoutes from './routes/orders.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Explicitly load .env from the server folder
-dotenv.config({ path: path.join(__dirname, '.env') });
+import FundRequest from './models/FundRequest.js';
+import callPakfollowersAPI from './utils/pakfollowers.js';
 
 const numCPUs = os.cpus().length;
 
@@ -38,44 +41,57 @@ if (cluster.isPrimary) {
   const app = express();
   const PORT = process.env.PORT || 5000;
 
+  // Redis client — falls back gracefully if Redis not available
+  let redis = null;
+  try {
+    redis = new Redis(process.env.REDIS_URL || 'redis://127.0.0.1:6379', {
+      lazyConnect: true,
+      connectTimeout: 3000,
+      maxRetriesPerRequest: 1,
+      enableOfflineQueue: false,
+    });
+    redis.on('error', () => { redis = null; }); // disable if Redis unavailable
+    await redis.connect().catch(() => { redis = null; });
+    if (redis) console.log(`✅ Worker ${process.pid} - Redis Connected`);
+  } catch {
+    redis = null;
+    console.log(`⚠️  Worker ${process.pid} - Redis unavailable, using DB only`);
+  }
+
   // Middleware
   app.use(cors());
-  app.use(express.json());
+  app.use(compression());
+  app.use(helmet({ crossOriginResourcePolicy: false }));
+  app.use(express.json({ limit: '1mb' }));
 
-  // ── RATE LIMITERS ──
-  // General API: 100 req / 15 min per IP
-  const generalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, max: 100,
-    standardHeaders: true, legacyHeaders: false,
-    message: { error: 'Too many requests. Please slow down.' }
+  // ── Admin login bypass — dedicated route, no rate limiting ──
+  app.post('/api/admin-auth', async (req, res) => {
+    const { email, password } = req.body;
+    if (email === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
+      const adminUser = { _id: 'admin_id', name: 'Master Administrator', email: process.env.ADMIN_USERNAME, role: 'admin', balance: 0 };
+      const token = jwt.sign({ id: adminUser._id, role: 'admin' }, process.env.JWT_SECRET || 'getReach_secret');
+      return res.json({ user: adminUser, token });
+    }
+    return res.status(401).json({ error: 'Invalid admin credentials' });
   });
 
-  // Auth routes: 10 attempts / 15 min per IP
-  const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, max: 10,
-    standardHeaders: true, legacyHeaders: false,
-    message: { error: 'Too many login attempts. Try again in 15 minutes.' }
+  // ── Brute-force protection on login ──
+  const loginLimiter = (await import('express-rate-limit')).default({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
+    standardHeaders: true,
+    legacyHeaders: false,
   });
+  app.use('/api/login', loginLimiter);
 
-  // Password reset: 5 requests / hour per IP
-  const resetLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, max: 5,
-    standardHeaders: true, legacyHeaders: false,
-    message: { error: 'Too many reset attempts. Try again in 1 hour.' }
-  });
-
-  // Order placement: 30 orders / 10 min per IP — applied inside route handler
-  const orderLimiter = null; // disabled — Express 5 compat issue with per-route limiters
-
-  app.use('/api/login', authLimiter);
-  app.use('/api/register', authLimiter);
-  app.use('/api/forgot-password', resetLimiter);
-  app.use('/api/reset-password', resetLimiter);
-  app.use('/api', generalLimiter);
-
-  // MongoDB Connection 
-  // (Note: SRV sometimes needs direct mongoose.connect without options in newer versions)
-  mongoose.connect(process.env.MONGODB_URI)
+  // MongoDB — connection pool tuned for cluster workers
+  mongoose.connect(process.env.MONGODB_URI, {
+    maxPoolSize: 10,        // 10 connections per worker
+    minPoolSize: 2,
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+  })
     .then(() => console.log(`🚀 Worker ${process.pid} - Atlas Connected`))
     .catch(err => console.error(`❌ Worker ${process.pid} Database Error:`, err.message));
 
@@ -129,7 +145,8 @@ if (cluster.isPrimary) {
       const existing = await User.findOne({ email });
       if (existing) return res.status(400).json({ error: 'An account with this email already exists.' });
 
-      const newUser = new User({ name, email, password });
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const newUser = new User({ name, email, password: hashedPassword });
       await newUser.save();
 
       const token = jwt.sign({ id: newUser._id, role: newUser.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
@@ -141,38 +158,71 @@ if (cluster.isPrimary) {
     }
   });
 
-  // 2. Login Check (UNLOCKED)
+  // 2. Login Check
   app.post('/api/login', async (req, res) => {
     try {
       const { email, password } = req.body;
-      // 🛡️ [AUTO-SEED] Cluster Master Access: Instant Admin Bypass
-      if (email === 'admin' && password === 'admin') {
-        const adminUser = { _id: 'admin_id', name: 'Master Administrator', email: 'admin', role: 'admin', balance: 999999 };
+
+      // Admin bypass — credentials loaded from .env (never hardcoded)
+      if (email === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
+        const adminUser = { _id: 'admin_id', name: 'Master Administrator', email: process.env.ADMIN_USERNAME, role: 'admin', balance: 0 };
         const token = jwt.sign({ id: adminUser._id, role: 'admin' }, process.env.JWT_SECRET || 'getReach_secret');
         return res.json({ user: adminUser, token });
       }
 
-      let user = await User.findOne({ email });
+      // ── Redis cache check ──
+      const cacheKey = `user:${email}`;
+      let user = null;
 
-      // 🛡️ [AUTO-SEED] For testing your new Atlas cluster: Create demo user if missing
-      if (!user && email === 'demo@getreach.pk' && password === '123456') {
-        user = new User({
-          name: 'GetReach Test Account',
-          email,
-          password, // In prod we would hash this, for testing it's simple
-          balance: 1000.00
-        });
-        await user.save();
+      if (redis) {
+        try {
+          const cached = await redis.get(cacheKey);
+          if (cached) user = JSON.parse(cached);
+        } catch {}
       }
 
-      if (!user || user.password !== password) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+      // ── DB fallback ──
+      if (!user) {
+        user = await User.findOne({ email }).lean();
+
+        // Demo user auto-create
+        if (!user && email === 'demo@getreach.pk' && password === '123456') {
+          const hashed = await bcrypt.hash('123456', 10);
+          const created = new User({ name: 'GetReach Test Account', email, password: hashed, balance: 10 });
+          await created.save();
+          user = created.toObject();
+        }
+
+        if (user && redis) {
+          try { await redis.setex(cacheKey, 300, JSON.stringify(user)); } catch {} // cache 5 min
+        }
       }
+
+      if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+
+      // ── Password check — support both hashed and legacy plain ──
+      let passwordMatch = false;
+      if (user.password.startsWith('$2')) {
+        passwordMatch = await bcrypt.compare(password, user.password);
+      } else {
+        // Legacy plain text — migrate on login
+        passwordMatch = user.password === password;
+        if (passwordMatch) {
+          const hashed = await bcrypt.hash(password, 10);
+          await User.findByIdAndUpdate(user._id, { password: hashed });
+          if (redis) {
+            try { await redis.del(cacheKey); } catch {} // bust cache so next login uses hashed
+          }
+        }
+      }
+
+      if (!passwordMatch) return res.status(401).json({ error: 'Invalid credentials' });
 
       const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
       res.json({ user: { id: user._id, _id: user._id, name: user.name, email: user.email, role: user.role, balance: user.balance }, token });
     } catch (err) {
-      res.status(500).json({ error: 'Atlas Login failure' });
+      console.error('Login error:', err.message);
+      res.status(500).json({ error: 'Login failed' });
     }
   });
 
@@ -188,6 +238,169 @@ if (cluster.isPrimary) {
   });
 
   app.use('/api/orders', orderRoutes);
+
+  // ── FUND REQUESTS ──
+
+  // User: submit fund request
+  app.post('/api/fund-requests', async (req, res) => {
+    try {
+      const { userId, method, amount, tid } = req.body;
+      if (!userId || !method || !amount || !tid)
+        return res.status(400).json({ error: 'All fields required.' });
+
+      // Block admin account from submitting fund requests
+      const requestingUser = await User.findById(userId).lean();
+      if (requestingUser?.role === 'admin')
+        return res.status(403).json({ error: 'Admin accounts cannot submit fund requests.' });
+      if (parseFloat(amount) < 50)
+        return res.status(400).json({ error: 'Minimum deposit is Rs 50.' });
+      // Check duplicate TID
+      const exists = await FundRequest.findOne({ tid });
+      if (exists) return res.status(400).json({ error: 'This Transaction ID has already been submitted.' });
+      const req2 = await FundRequest.create({ userId, method, amount: parseFloat(amount), tid });
+      res.status(201).json(req2);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // User: get own requests
+  app.get('/api/fund-requests/user/:userId', async (req, res) => {
+    try {
+      const requests = await FundRequest.find({ userId: req.params.userId }).sort({ created: -1 });
+      res.json(requests);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Admin: get all requests
+  app.get('/api/fund-requests', async (req, res) => {
+    try {
+      const requests = await FundRequest.find().populate('userId', 'name email balance').sort({ created: -1 });
+      res.json(requests);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Admin: approve or reject
+  app.patch('/api/fund-requests/:id', async (req, res) => {
+    try {
+      const { status, note } = req.body;
+      const fr = await FundRequest.findById(req.params.id).populate('userId');
+      if (!fr) return res.status(404).json({ error: 'Request not found.' });
+      if (fr.status !== 'pending') return res.status(400).json({ error: 'Already processed.' });
+
+      fr.status = status;
+      fr.note = note || '';
+      fr.updatedAt = new Date();
+      await fr.save();
+
+      if (status === 'approved') {
+        await User.findByIdAndUpdate(fr.userId._id, { $inc: { balance: fr.amount } });
+      }
+
+      res.json({ success: true, request: fr });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Admin Revenue Page
+  app.get('/api/admin/revenue', async (req, res) => {
+    try {
+      const Order = (await import('./models/Order.js')).default;
+      const { period = '30' } = req.query; // days
+      const days = parseInt(period) || 30;
+      const since = new Date(Date.now() - days * 86400000);
+
+      const [totals, daily, topServices] = await Promise.all([
+        // Overall totals
+        Order.aggregate([
+          { $group: {
+            _id: null,
+            totalRevenue: { $sum: '$price' },
+            totalApiCost: { $sum: '$apiCost' },
+            totalOrders:  { $sum: 1 }
+          }}
+        ]),
+        // Daily breakdown for chart
+        Order.aggregate([
+          { $match: { created: { $gte: since } } },
+          { $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$created' } },
+            revenue: { $sum: '$price' },
+            apiCost: { $sum: '$apiCost' },
+            orders:  { $sum: 1 }
+          }},
+          { $sort: { _id: 1 } }
+        ]),
+        // Top services by revenue
+        Order.aggregate([
+          { $match: { created: { $gte: since } } },
+          { $group: {
+            _id: '$serviceName',
+            revenue: { $sum: '$price' },
+            apiCost: { $sum: '$apiCost' },
+            orders:  { $sum: 1 }
+          }},
+          { $sort: { revenue: -1 } },
+          { $limit: 8 }
+        ])
+      ]);
+
+      const t = totals[0] || { totalRevenue: 0, totalApiCost: 0, totalOrders: 0 };
+      res.json({
+        totalRevenue: t.totalRevenue,
+        totalApiCost: t.totalApiCost,
+        totalProfit:  t.totalRevenue - t.totalApiCost,
+        totalOrders:  t.totalOrders,
+        daily,
+        topServices,
+      });
+    } catch (err) {
+      console.error('Revenue error:', err.message);
+      res.status(500).json({ error: 'Failed to fetch revenue data' });
+    }
+  });
+
+  // Admin Stats Dashboard
+  app.get('/api/admin/stats', async (req, res) => {
+    try {
+      const Order = (await import('./models/Order.js')).default;
+
+      const [totalUsers, totalOrders, totalTickets, revenueAgg, openTickets,
+             usersLast7, ordersLast7, recentUsers, recentOrders] = await Promise.all([
+        User.countDocuments(),
+        Order.countDocuments(),
+        Ticket.countDocuments(),
+        Order.aggregate([{ $group: { _id: null, total: { $sum: '$price' } } }]),
+        Ticket.countDocuments({ status: { $in: ['Open', 'In Review'] } }),
+        User.aggregate([
+          { $match: { created: { $gte: new Date(Date.now() - 6 * 86400000) } } },
+          { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$created' } }, count: { $sum: 1 } } },
+          { $sort: { _id: 1 } }
+        ]),
+        Order.aggregate([
+          { $match: { created: { $gte: new Date(Date.now() - 6 * 86400000) } } },
+          { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$created' } }, count: { $sum: 1 } } },
+          { $sort: { _id: 1 } }
+        ]),
+        User.find().sort({ created: -1 }).limit(5).select('name email created'),
+        Order.find().sort({ created: -1 }).limit(5).populate('userId', 'name email'),
+      ]);
+
+      res.json({
+        totalUsers, totalOrders, totalTickets, openTickets,
+        totalRevenue: revenueAgg[0]?.total || 0,
+        usersLast7, ordersLast7, recentUsers, recentOrders,
+      });
+    } catch (err) {
+      console.error('Stats error:', err.message);
+      res.status(500).json({ error: 'Failed to fetch stats' });
+    }
+  });
 
   // 5. Ticket System (User Create)
   app.post('/api/tickets', async (req, res) => {
@@ -322,7 +535,7 @@ if (cluster.isPrimary) {
       const user = await User.findOne({ resetToken: token, resetTokenExpiry: { $gt: new Date() } });
       if (!user) return res.status(400).json({ error: 'Reset link is invalid or has expired.' });
 
-      user.password = newPassword;
+      user.password = await bcrypt.hash(newPassword, 10);
       user.resetToken = undefined;
       user.resetTokenExpiry = undefined;
       await user.save();
@@ -340,9 +553,10 @@ if (cluster.isPrimary) {
       if (!newPassword || newPassword.length < 4) {
         return res.status(400).json({ error: 'Password must be at least 4 characters' });
       }
+      const hashed = await bcrypt.hash(newPassword, 10);
       const user = await User.findByIdAndUpdate(
         req.params.id,
-        { password: newPassword },
+        { password: hashed },
         { new: true }
       );
       if (!user) return res.status(404).json({ error: 'User not found' });
@@ -351,6 +565,81 @@ if (cluster.isPrimary) {
       res.status(500).json({ error: 'Failed to reset password' });
     }
   });
+
+  // Admin: add balance to user
+  app.patch('/api/users/:id/add-balance', async (req, res) => {
+    try {
+      const { amount } = req.body;
+      if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+        return res.status(400).json({ error: 'Valid amount required' });
+      }
+      const user = await User.findByIdAndUpdate(
+        req.params.id,
+        { $inc: { balance: parseFloat(amount) } },
+        { new: true }
+      );
+      if (!user) return res.status(404).json({ error: 'User not found' });
+      // Bust Redis cache
+      if (redis) { try { await redis.del(`user:${user.email}`); } catch {} }
+      res.json({ success: true, newBalance: user.balance });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to update balance' });
+    }
+  });
+
+  // ── API Balance Low Alert — checks every hour ──
+  const LOW_BALANCE_THRESHOLD_USD = 0.32; // ≈ Rs 100
+  let lastAlertSent = 0; // prevent spam — only alert once per 6 hours
+
+  const checkApiBalance = async () => {
+    try {
+      const data = await callPakfollowersAPI({ action: 'balance' });
+      const balance = parseFloat(data?.balance || 0);
+      const now = Date.now();
+
+      if (balance < LOW_BALANCE_THRESHOLD_USD && (now - lastAlertSent) > 6 * 60 * 60 * 1000) {
+        const pkr = (balance * 315).toFixed(2);
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+        });
+
+        await transporter.sendMail({
+          from: `"GetReach Alert" <${process.env.EMAIL_USER}>`,
+          to: process.env.ADMIN_ALERT_EMAIL || process.env.EMAIL_USER,
+          subject: '⚠️ Low API Balance Alert — GetReach',
+          html: `
+            <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#1A2517;border-radius:16px;color:#F5F0E8;">
+              <h2 style="color:#ff6b7a;margin-bottom:8px;">⚠️ Low API Balance</h2>
+              <p style="color:rgba(245,240,232,0.7);margin-bottom:24px;">
+                Your PakFollowers API balance has dropped below the threshold.
+              </p>
+              <div style="background:rgba(255,107,122,0.1);border:1px solid rgba(255,107,122,0.3);border-radius:12px;padding:20px;margin-bottom:24px;">
+                <div style="font-size:32px;font-weight:900;color:#ff6b7a;">$${balance.toFixed(4)} USD</div>
+                <div style="font-size:16px;color:rgba(245,240,232,0.5);margin-top:4px;">≈ Rs ${pkr} PKR</div>
+              </div>
+              <p style="color:rgba(245,240,232,0.6);font-size:14px;">
+                Please top up your PakFollowers account immediately to avoid order failures.
+              </p>
+              <a href="https://pakfollowers.com" style="display:inline-block;margin-top:16px;padding:12px 28px;background:#ACC8A2;color:#1A2517;border-radius:10px;font-weight:800;text-decoration:none;">
+                Add Funds Now →
+              </a>
+              <p style="margin-top:24px;color:rgba(245,240,232,0.25);font-size:11px;">GetReach Auto Alert · Sent at ${new Date().toLocaleString()}</p>
+            </div>
+          `
+        });
+
+        lastAlertSent = now;
+        console.log(`📧 Low balance alert sent — $${balance} USD`);
+      }
+    } catch (err) {
+      console.error('Balance check error:', err.message);
+    }
+  };
+
+  // Run immediately on startup, then every hour
+  checkApiBalance();
+  setInterval(checkApiBalance, 60 * 60 * 1000);
 
   app.listen(PORT, () => {
     console.log(`🌐 Cluster Worker ${process.pid} listening on Port ${PORT}`);

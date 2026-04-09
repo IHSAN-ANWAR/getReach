@@ -18,7 +18,7 @@ const AdminLoginPage = ({ onAdminLogin }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('http://localhost:5000/api/login', {
+      const response = await fetch('http://localhost:5000/api/admin-auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -59,7 +59,7 @@ const AdminLoginPage = ({ onAdminLogin }) => {
               <label style={{ display: 'block', color: C.muted, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 10 }}>Username</label>
               <div style={{ position: 'relative' }}>
                 <FaEnvelope style={{ position: 'absolute', left: 18, top: '50%', transform: 'translateY(-50%)', color: C.accentLt, fontSize: 16 }} />
-                <input type="text" required value={email} onChange={e => setEmail(e.target.value)} placeholder="admin" style={{ width: '100%', padding: '16px 16px 16px 50px', background: C.bg, border: `1.5px solid ${C.border}`, borderRadius: 14, color: C.dark, fontSize: 16, outline: 'none' }} />
+                <input type="text" required value={email} onChange={e => setEmail(e.target.value)} placeholder="Username" style={{ width: '100%', padding: '16px 16px 16px 50px', background: C.bg, border: `1.5px solid ${C.border}`, borderRadius: 14, color: C.dark, fontSize: 16, outline: 'none' }} />
               </div>
             </div>
 

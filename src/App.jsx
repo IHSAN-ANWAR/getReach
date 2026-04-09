@@ -67,7 +67,7 @@ function App() {
           <Route
             path="/admin"
             element={
-              user?.role === 'admin' ? <Navigate to="/admin/users" replace /> : <Navigate to="/admin/login" replace />
+              user?.role === 'admin' ? <Navigate to="/admin/dashboard" replace /> : <Navigate to="/admin/login" replace />
             }
           />
 

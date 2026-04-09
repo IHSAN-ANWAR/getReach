@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FaLeaf, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaLeaf, FaLock, FaEye, FaEyeSlash, FaCheckCircle, FaEnvelope } from 'react-icons/fa';
 
 const ResetPasswordPage = () => {
   const [params] = useSearchParams();
@@ -56,7 +56,9 @@ const ResetPasswordPage = () => {
         <div style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(30px)', border: '2px solid rgba(172,200,162,0.2)', borderRadius: 28, padding: '48px 44px', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
           {done ? (
             <div className="text-center">
-              <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
+              <div style={{ width: 72, height: 72, borderRadius: 20, background: 'linear-gradient(135deg, #ACC8A2, #7aad6e)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                <FaCheckCircle color="#1A2517" size={30} />
+              </div>
               <h3 style={{ color: '#ACC8A2', fontWeight: 800, fontSize: 22, marginBottom: 10 }}>Password Reset!</h3>
               <p style={{ color: 'rgba(245,240,232,0.5)', fontSize: 15 }}>Redirecting you to login...</p>
             </div>

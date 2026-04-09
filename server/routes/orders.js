@@ -1,6 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import Order from '../models/Order.js';
+import ServiceOverride from '../models/ServiceOverride.js';
 import callPakfollowersAPI from '../utils/pakfollowers.js';
 
 const router = express.Router();
@@ -19,32 +20,52 @@ router.get('/balance', async (req, res) => {
   }
 });
 
-// Fetch all services with markup applied (Cache for 5 mins)
+// Fetch all services with markup applied (Cache for 10 mins, serve stale on failure)
 let servicesCache = null;
 let lastCacheTime = 0;
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 router.get('/services', async (req, res) => {
   try {
-    // 5 mins cache
-    if (servicesCache && Date.now() - lastCacheTime < 5 * 60 * 1000) {
+    // Serve from cache if fresh
+    if (servicesCache && Date.now() - lastCacheTime < CACHE_TTL) {
       return res.json(servicesCache);
     }
-    
+
     const rawData = await callPakfollowersAPI({ action: 'services' });
+    const overrides = await ServiceOverride.find({ hidden: { $ne: true } });
 
-    // Apply your markup to every service rate before caching/sending
-    const markedUpData = Array.isArray(rawData)
-      ? rawData.map(s => ({
-          ...s,
-          rate: (parseFloat(s.rate) * MARKUP).toFixed(4),   // Your selling price
-          _apiRate: parseFloat(s.rate),                       // Original cost (kept for internal use)
-        }))
-      : rawData;
+    if (!overrides.length) {
+      servicesCache = [];
+      lastCacheTime = Date.now();
+      return res.json([]);
+    }
 
-    servicesCache = markedUpData;
+    const rawMap = {};
+    if (Array.isArray(rawData)) rawData.forEach(s => { rawMap[String(s.service)] = s; });
+
+    const result = overrides
+      .map(ov => {
+        const raw = rawMap[ov.serviceId] || {};
+        const baseRate = parseFloat(raw.rate || 0) * MARKUP * 315; // PKR
+        return {
+          service:  ov.serviceId,
+          name:     ov.name     || raw.name,
+          category: ov.category || raw.category,
+          rate:     ov.rate     ?? baseRate.toFixed(2),
+          min:      ov.min      ?? raw.min,
+          max:      ov.max      ?? raw.max,
+          _apiRate: parseFloat(raw.rate || 0),
+        };
+      })
+      .filter(s => s.name);
+
+    servicesCache = result;
     lastCacheTime = Date.now();
-    res.json(markedUpData);
+    res.json(result);
   } catch (error) {
+    // Serve stale cache on API failure rather than erroring
+    if (servicesCache) return res.json(servicesCache);
     res.status(500).json({ error: error.message });
   }
 });
@@ -73,13 +94,14 @@ router.post('/place-order', async (req, res) => {
     }
 
     // Use the marked-up rate to charge the user
-    const markedUpRate = parseFloat(service.rate);       // Your selling price (with markup)
-    const apiCost = service._apiRate                      // Original API cost
-      ? (service._apiRate / 1000) * quantity
-      : (markedUpRate / MARKUP / 1000) * quantity;       // Fallback: reverse-calculate API cost
+    // service.rate is stored as USD/1k in overrides, but admin may set it as PKR/1k
+    // We treat service.rate as PKR/1k (since frontend shows Rs and admin sets Rs rates)
+    const ratePerUnit = parseFloat(service.rate) / 1000;  // PKR per unit
+    const apiRateUSD = service._apiRate || 0;
+    const apiCost = (apiRateUSD / 1000) * quantity;        // USD cost to API
 
-    const chargeToUser = (markedUpRate / 1000) * quantity; // What user pays
-    const yourProfit = chargeToUser - apiCost;             // Your actual profit per order
+    const chargeToUser = ratePerUnit * quantity;           // PKR charged to user
+    const yourProfit = chargeToUser - (apiCost * 315);     // PKR profit
 
     if (user.balance < chargeToUser) {
       return res.status(400).json({ error: 'Insufficient internal balance' });
@@ -109,6 +131,7 @@ router.post('/place-order', async (req, res) => {
       link,
       quantity,
       price: chargeToUser,      // What you charged the user
+      apiCost: apiCost,         // What the API cost you
       apiOrderId: apiRes.order,
       status: 'pending'
     });
@@ -168,6 +191,26 @@ router.get('/user/:userId', async (req, res) => {
   }
 });
 
+// Cancel an order (user-initiated)
+router.post('/cancel/:orderId', async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.orderId);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+
+    const terminal = ['completed', 'partial', 'cancelled', 'refunded'];
+    if (terminal.includes((order.status || '').toLowerCase())) {
+      return res.status(400).json({ error: 'Order cannot be cancelled at this stage.' });
+    }
+
+    order.status = 'cancelled';
+    order.updatedAt = new Date();
+    await order.save();
+    res.json({ success: true, order });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ── Background status sync — runs every 2 minutes ──
 const TERMINAL = ['completed', 'partial', 'cancelled', 'refunded'];
 
@@ -206,5 +249,82 @@ const syncOrderStatuses = async () => {
 };
 
 setInterval(syncOrderStatuses, 2 * 60 * 1000);
+
+// ── Admin: get all services with overrides merged (no cache bypass needed) ──
+router.get('/admin/services', async (req, res) => {
+  try {
+    const rawData = await callPakfollowersAPI({ action: 'services' });
+    const overrides = await ServiceOverride.find();
+    const overrideMap = {};
+    overrides.forEach(o => { overrideMap[o.serviceId] = o; });
+
+    const merged = Array.isArray(rawData)
+      ? rawData.map(s => {
+          const ov = overrideMap[String(s.service)] || {};
+          const PKR = 315;
+          return {
+            ...s,
+            // raw API values (always original) — converted to PKR
+            _rawName:     s.name,
+            _rawCategory: s.category,
+            _rawRate:     (parseFloat(s.rate) * MARKUP * PKR).toFixed(2),
+            _rawMin:      s.min,
+            _rawMax:      s.max,
+            _apiRate:     parseFloat(s.rate),
+            // effective values (override wins)
+            name:         ov.name     ?? s.name,
+            category:     ov.category ?? s.category,
+            displayRate:  ov.rate     ?? (parseFloat(s.rate) * MARKUP * PKR).toFixed(2),
+            min:          ov.min      ?? s.min,
+            max:          ov.max      ?? s.max,
+            hidden:       ov.hidden   ?? false,
+            _hasOverride: !!overrideMap[String(s.service)],
+          };
+        })
+      : rawData;
+
+    res.json(merged);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ── Admin: save / update override for a single service ──
+router.put('/admin/services/:serviceId', async (req, res) => {
+  try {
+    const { serviceId } = req.params;
+    const { name, category, rate, min, max, hidden } = req.body;
+
+    const update = { updatedAt: new Date() };
+    if (name     !== undefined) update.name     = name;
+    if (category !== undefined) update.category = category;
+    if (rate     !== undefined) update.rate     = rate;
+    if (min      !== undefined) update.min      = min;
+    if (max      !== undefined) update.max      = max;
+    if (hidden   !== undefined) update.hidden   = hidden;
+
+    const doc = await ServiceOverride.findOneAndUpdate(
+      { serviceId },
+      { $set: update },
+      { upsert: true, new: true }
+    );
+    // Bust the public services cache so clients see changes immediately
+    servicesCache = null;
+    res.json({ success: true, override: doc });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ── Admin: delete override (revert to raw API data) ──
+router.delete('/admin/services/:serviceId', async (req, res) => {
+  try {
+    await ServiceOverride.findOneAndDelete({ serviceId: req.params.serviceId });
+    servicesCache = null;
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 export default router;

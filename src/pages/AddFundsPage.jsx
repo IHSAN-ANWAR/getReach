@@ -12,11 +12,11 @@ const PAYMENT_METHODS = [
 ];
 
 const PAYMENT_DETAILS = {
-  easypaisa: { accountName: 'GetReach Admin', accountNumber: '0300-1234567', instructions: 'Send money to the EasyPaisa account above after which you must enter the Transaction ID below.' },
-  jazzcash:  { accountName: 'GetReach Admin', accountNumber: '0300-7654321', instructions: 'Send money to the JazzCash account above after which you must enter the Transaction ID below.' },
+  easypaisa: { accountName: 'Ehsan Anwar', accountNumber: '03276508773', instructions: 'Send money to the EasyPaisa account above after which you must enter the Transaction ID below.' },
+  jazzcash:  { accountName: 'Ehsan Anwar', accountNumber: '03276508773', instructions: 'Send money to the JazzCash account above after which you must enter the Transaction ID below.' },
 };
 
-const AddFundsPage = ({ updateBalance }) => {
+const AddFundsPage = ({ updateBalance, user }) => {
   const [method, setMethod] = useState('easypaisa');
   const [amount, setAmount] = useState('');
   const [tid, setTid] = useState('');
@@ -24,6 +24,7 @@ const AddFundsPage = ({ updateBalance }) => {
   const [success, setSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showModal, setShowModal] = useState(true);
+  const [error, setError] = useState('');
 
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text);
@@ -33,28 +34,30 @@ const AddFundsPage = ({ updateBalance }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     const val = parseFloat(amount);
-    if (val < 50) {
-      alert('Minimum deposit amount is 50 PKR.');
-      return;
-    }
-    if (val > 50000) {
-      alert('Maximum deposit amount per transaction is 50,000 PKR.');
-      return;
-    }
+    if (val < 50) { setError('Minimum deposit amount is Rs 50.'); return; }
+    if (val > 50000) { setError('Maximum deposit amount is Rs 50,000.'); return; }
+    if (!tid.trim()) { setError('Please enter your Transaction ID.'); return; }
+
     setLoading(true);
-    await new Promise(r => setTimeout(r, 2000));
-    setLoading(false);
-
-    // ── Update Global Balance ──
-    updateBalance(parseFloat(amount));
-
-    setSuccess(true);
-    setTimeout(() => {
-      setSuccess(false);
-      setTid('');
-      setAmount('');
-    }, 5000);
+    try {
+      const userId = user?.id || user?._id;
+      await fetch('http://localhost:5000/api/fund-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, method, amount: val, tid: tid.trim() })
+      }).then(async r => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Submission failed.');
+      });
+      setSuccess(true);
+      setTimeout(() => { setSuccess(false); setTid(''); setAmount(''); }, 6000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -209,19 +212,21 @@ const AddFundsPage = ({ updateBalance }) => {
                     <FaCheckCircle size={24} className="mb-2" />
                     <div style={{ fontWeight: 800 }}>Request Submitted!</div>
                     <div style={{ fontSize: 13 }}>Funds will be added to your account after verification.</div>
-                  </motion.div>
-                ) : (
-                  <button
-                    id="submit-payment-btn"
-                    disabled={loading}
-                    style={{
-                      width: '100%', padding: '16px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg, #1ebc61, #128c4b)',
-                      color: '#fff', fontWeight: 800, fontSize: 16, cursor: loading ? 'not-allowed' : 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: '0 6px 20px rgba(30,188,97,0.3)'
-                    }}
-                  >
-                    {loading ? <div className="spinner-border spinner-border-sm" /> : <><FaWallet /> Confirm Deposit</>}
-                  </button>
+                  </motion.div>                ) : (
+                  <>
+                    {error && (
+                      <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, background: 'rgba(231,76,60,0.08)', border: '1px solid rgba(231,76,60,0.2)', color: '#e74c3c', fontSize: 13, fontWeight: 600 }}>
+                        {error}
+                      </div>
+                    )}
+                    <button
+                      id="submit-payment-btn"
+                      disabled={loading}
+                      style={{ width: '100%', padding: '16px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg, #1ebc61, #128c4b)', color: '#fff', fontWeight: 800, fontSize: 16, cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: '0 6px 20px rgba(30,188,97,0.3)' }}
+                    >
+                      {loading ? <div className="spinner-border spinner-border-sm" /> : <><FaWallet /> Submit Deposit Request</>}
+                    </button>
+                  </>
                 )}
               </AnimatePresence>
             </form>

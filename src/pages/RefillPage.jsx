@@ -89,7 +89,7 @@ const RefillPage = () => {
             </thead>
             <tbody>
               {MOCK_REFILL_ORDERS.map((o) => (
-                <tr key={o.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.03)', verticalAlign: 'middle' }}>
+                <tr key={o.id} style={{ borderBottom: '1px solid rgba(128,128,128,0.1)', verticalAlign: 'middle' }}>
                   <td className="px-4 py-4 border-0" style={{ fontSize: 15, fontWeight: 700 }}>#{o.id}</td>
                   <td className="px-4 py-4 border-0">
                     <div style={{ fontSize: 16, fontWeight: 700 }}>{o.service}</div>
@@ -113,8 +113,8 @@ const RefillPage = () => {
                         disabled={o.status !== 'Eligible' || loading === o.id}
                         style={{
                           padding: '10px 20px', borderRadius: 12, border: 'none',
-                          background: o.status === 'Eligible' ? 'linear-gradient(135deg, #ff6b7a, #e74c3c)' : 'rgba(0,0,0,0.05)',
-                          color: o.status === 'Eligible' ? '#fff' : 'rgba(0,0,0,0.2)',
+                          background: o.status === 'Eligible' ? 'linear-gradient(135deg, #ff6b7a, #e74c3c)' : 'rgba(128,128,128,0.1)',
+                          color: o.status === 'Eligible' ? '#fff' : 'var(--color-gray)',
                           fontWeight: 700, fontSize: 14,
                           cursor: o.status === 'Eligible' ? 'pointer' : 'not-allowed',
                           display: 'inline-flex', alignItems: 'center', gap: 8,

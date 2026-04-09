@@ -6,16 +6,16 @@ const orderSchema = new mongoose.Schema({
   serviceName: { type: String },
   link: { type: String, required: true },
   quantity: { type: Number, required: true },
-  price: { type: Number },
+  price: { type: Number },       // what user was charged
+  apiCost: { type: Number },     // what the API actually cost you
   apiOrderId: { type: String },
   status: { type: String, default: 'pending' },
   created: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
 
-orderSchema.pre('save', function(next) {
+orderSchema.pre('save', async function() {
   this.updatedAt = Date.now();
-  next();
 });
 
 const Order = mongoose.models.Order || mongoose.model('Order', orderSchema);

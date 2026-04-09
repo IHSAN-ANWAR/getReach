@@ -27,7 +27,7 @@ const NewOrderPage = ({ user, updateBalance }) => {
       </motion.div>
 
       {/* Stats Cards */}
-      <StatsCards />
+      <StatsCards user={user} />
 
       {/* Divider */}
       <motion.div

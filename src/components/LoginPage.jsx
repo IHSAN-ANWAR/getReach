@@ -176,7 +176,9 @@ const LoginPage = ({ onLogin }) => {
               /* ── FORGOT PASSWORD VIEW ── */
               forgotSent ? (
                 <div className="text-center">
-                  <div style={{ fontSize: 48, marginBottom: 16 }}>📬</div>
+                  <div style={{ width: 72, height: 72, borderRadius: 20, background: 'linear-gradient(135deg, #ACC8A2, #7aad6e)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                    <FaEnvelope color="#1A2517" size={30} />
+                  </div>
                   <h2 style={{ fontFamily: 'Poppins', fontWeight: 800, fontSize: 28, color: '#F5F0E8', marginBottom: 12 }}>Check Your Email</h2>
                   <p style={{ color: 'rgba(245,240,232,0.5)', fontSize: 16, marginBottom: 32 }}>
                     If <strong style={{ color: '#ACC8A2' }}>{forgotEmail}</strong> is registered, a reset link has been sent. Check your inbox.

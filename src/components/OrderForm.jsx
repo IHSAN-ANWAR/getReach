@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
-  FaCheckCircle, FaSearch, FaTimes
+  FaCheckCircle, FaSearch, FaTimes, FaExclamationTriangle, FaWallet
 } from 'react-icons/fa';
 import confetti from 'canvas-confetti';
 import axios from 'axios';
@@ -31,6 +32,8 @@ const SectionTitle = ({ step, title }) => (
 const OrderForm = ({ user, updateBalance }) => {
   const [services, setServices] = useState([]);
   const [loadingServices, setLoadingServices] = useState(true);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // Selections
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -42,6 +45,7 @@ const OrderForm = ({ user, updateBalance }) => {
   
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [insufficientBalance, setInsufficientBalance] = useState(false);
 
   useEffect(() => {
     const close = (e) => { if (!e.target.closest('[data-search]')) setShowSearchResults(false); };
@@ -55,14 +59,28 @@ const OrderForm = ({ user, updateBalance }) => {
         const res = await axios.get('http://localhost:5000/api/orders/services');
         const data = Array.isArray(res.data) ? res.data : [];
         setServices(data);
-        
+
+        const preselectedId = searchParams.get('service');
+
+        if (preselectedId) {
+          const target = data.find(s => String(s.service) === String(preselectedId));
+          if (target) {
+            setSelectedCategory(target.category);
+            setSelectedServiceId(target.service);
+            setQty(parseInt(target.min) || 100);
+            // Clear the param from URL so it doesn't re-trigger
+            setSearchParams({}, { replace: true });
+            return;
+          }
+        }
+
         if (data.length > 0) {
           const firstCat = data[0].category;
           setSelectedCategory(firstCat);
           const firstServ = data.find(s => s.category === firstCat);
           if (firstServ) {
-             setSelectedServiceId(firstServ.service);
-             setQty(parseInt(firstServ.min) || 100);
+            setSelectedServiceId(firstServ.service);
+            setQty(parseInt(firstServ.min) || 100);
           }
         }
       } catch (err) {
@@ -97,7 +115,8 @@ const OrderForm = ({ user, updateBalance }) => {
 
   const totalPrice = useMemo(() => {
     if (!selectedService || !qty) return "0.00";
-    return ((parseFloat(selectedService.rate) / 1000) * qty).toFixed(4);
+    // rate is stored as PKR/1k
+    return ((parseFloat(selectedService.rate) / 1000) * qty).toFixed(2);
   }, [selectedService, qty]);
 
   const searchResults = useMemo(() => {
@@ -152,7 +171,13 @@ const OrderForm = ({ user, updateBalance }) => {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to place order');
+      if (!response.ok) {
+        if (response.status === 400 && data.error?.toLowerCase().includes('insufficient')) {
+          setInsufficientBalance(true);
+          return;
+        }
+        throw new Error(data.error || 'Failed to place order');
+      }
 
       updateBalance(data.newBalance);
       setSuccess(true);
@@ -169,17 +194,18 @@ const OrderForm = ({ user, updateBalance }) => {
   };
 
   if (loadingServices) {
-    return <div className="card p-5 text-center" style={{ color: '#ACC8A2' }}>Loading global services...</div>;
+    return <div className="card p-5 text-center" style={{ color: '#ACC8A2' }}>Loading services...</div>;
   }
 
   return (
+    <>
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }} className="card">
       <div className="card-body p-4">
         <h2 style={{ fontFamily: 'Poppins', fontWeight: 700, fontSize: 22, color: 'var(--text-color)', marginBottom: 8 }}>
-          Place Remote Order
+          Place New Order
         </h2>
         <p style={{ color: 'var(--color-gray)', fontSize: 15, marginBottom: 32 }}>
-          Choose from live upstream services
+          Choose a service and grow your social presence
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -218,7 +244,7 @@ const OrderForm = ({ user, updateBalance }) => {
                         <div style={{ fontSize: 11, color: 'rgba(172,200,162,0.6)', fontWeight: 600 }}>{s.category} · ID {s.service}</div>
                       </div>
                       <div style={{ fontSize: 12, fontWeight: 800, color: '#ACC8A2', whiteSpace: 'nowrap' }}>
-                        Rs {(parseFloat(s.rate) * 280 / 1000).toFixed(4)} / unit
+                        Rs {(parseFloat(s.rate) / 1000).toFixed(4)} / unit
                       </div>
                     </div>
                   </div>
@@ -266,10 +292,10 @@ const OrderForm = ({ user, updateBalance }) => {
                }}
             >
               {filteredServices.map(s => {
-                const pkrRate = (parseFloat(s.rate) * 280).toFixed(2);
+                const pkrRate = parseFloat(s.rate).toFixed(2);
                 return (
                   <option key={s.service} value={s.service} style={{ background: '#1A2517', color: '#F5F0E8' }}>
-                    {s.service} - {s.name} (Rs {pkrRate} / ${s.rate} per 1K)
+                    {s.service} - {s.name} (Rs {pkrRate} per 1K)
                   </option>
                 );
               })}
@@ -327,10 +353,10 @@ const OrderForm = ({ user, updateBalance }) => {
             }}>
               <div>
                 <p style={{ fontFamily: 'Poppins', fontSize: 32, fontWeight: 800, color: '#ACC8A2', margin: 0, lineHeight: 1 }}>
-                  Rs {(parseFloat(totalPrice) * 280).toFixed(2)} <span style={{fontSize: 20, color: 'rgba(172,200,162,0.6)'}}>/ ${totalPrice}</span>
+                  Rs {totalPrice}
                 </p>
                 <p style={{ color: 'var(--color-gray)', fontSize: 13, marginTop: 4, marginBottom: 0 }}>
-                  Deducted from internal balance
+                  Deducted from your balance
                 </p>
               </div>
             </div>
@@ -344,7 +370,7 @@ const OrderForm = ({ user, updateBalance }) => {
                 style={{ padding: '18px', borderRadius: 14, textAlign: 'center', background: 'rgba(172,200,162,0.15)', border: '2px solid rgba(172,200,162,0.4)' }}
               >
                 <FaCheckCircle size={32} color="#ACC8A2" />
-                <p style={{ fontFamily: 'Poppins', fontWeight: 700, fontSize: 16, color: '#ACC8A2', margin: '10px 0 4px' }}>Transmission Confirmed!</p>
+                <p style={{ fontFamily: 'Poppins', fontWeight: 700, fontSize: 16, color: '#ACC8A2', margin: '10px 0 4px' }}>Order Placed Successfully!</p>
               </motion.div>
             ) : (
               <motion.button
@@ -362,6 +388,72 @@ const OrderForm = ({ user, updateBalance }) => {
         </form>
       </div>
     </motion.div>
+
+    {/* ── Insufficient Balance Modal ── */}
+    <AnimatePresence>
+      {insufficientBalance && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setInsufficientBalance(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 500, backdropFilter: 'blur(6px)' }}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: 'spring', damping: 22, stiffness: 220 }}
+            style={{
+              position: 'fixed', top: '50%', left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 501, width: '90%', maxWidth: 420,
+              background: 'var(--card-bg)', borderRadius: 24,
+              overflow: 'hidden', boxShadow: '0 30px 80px rgba(0,0,0,0.4)',
+              border: '1px solid rgba(255,107,122,0.2)',
+            }}
+          >
+            {/* Header */}
+            <div style={{ background: 'linear-gradient(135deg, #ff6b7a, #e74c3c)', padding: '24px', textAlign: 'center' }}>
+              <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                <FaExclamationTriangle color="#fff" size={26} />
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#fff' }}>Insufficient Balance</div>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: '24px' }}>
+              <p style={{ color: 'var(--color-gray)', fontSize: 15, textAlign: 'center', lineHeight: 1.6, marginBottom: 20 }}>
+                You don't have enough balance to place this order. Please add funds to continue.
+              </p>
+
+              <div style={{ background: 'rgba(172,200,162,0.08)', border: '1px solid rgba(172,200,162,0.2)', borderRadius: 12, padding: '14px 16px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <FaWallet color="#ACC8A2" size={18} />
+                <div>
+                  <div style={{ fontSize: 12, color: 'var(--color-gray)', fontWeight: 600 }}>Current Balance</div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: '#ACC8A2' }}>Rs {(user?.balance ?? 0).toFixed(2)}</div>
+                </div>
+                <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                  <div style={{ fontSize: 12, color: 'var(--color-gray)', fontWeight: 600 }}>Order Cost</div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: '#ff6b7a' }}>Rs {totalPrice}</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setInsufficientBalance(false)}
+                  style={{ flex: 1, padding: '13px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.1)', background: 'transparent', color: 'var(--color-gray)', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+                  Cancel
+                </button>
+                <button onClick={() => { setInsufficientBalance(false); navigate('/add-funds'); }}
+                  style={{ flex: 2, padding: '13px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #ACC8A2, #7aad6e)', color: '#1A2517', fontWeight: 800, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <FaWallet size={14} /> Add Funds
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+    </>
   );
 };
 

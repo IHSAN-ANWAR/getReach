@@ -8,6 +8,29 @@ import {
 
 const FAQ_DATA = [
   {
+    category: 'Please Read Before Submitting an Order',
+    icon: '⚠️',
+    warning: true,
+    questions: [
+      {
+        q: "This is an automatic server — orders cannot be cancelled after submission",
+        a: "Once you submit an order, it is processed automatically and cannot be cancelled, edited, or changed. Please think carefully before placing any order."
+      },
+      {
+        q: "Refill guarantee will be revoked if start count drops after order completes",
+        a: "If the start count goes down after an order is completed, the refill guarantee is automatically revoked and we are unable to provide any refill in such cases."
+      },
+      {
+        q: "Order is considered complete if start count drops after placing/starting",
+        a: "If the start count goes down after an order is placed or started, the order will be marked as completed. We are unable to cancel or partially refund such orders."
+      },
+      {
+        q: "Order is considered complete if post/page/video is deleted after placing",
+        a: "If the post, page, or video you ordered on is deleted or removed after the order is placed, the order will be considered complete and we cannot cancel or refund it."
+      }
+    ]
+  },
+  {
     category: 'General Policies',
     questions: [
       {
@@ -15,12 +38,12 @@ const FAQ_DATA = [
         a: "Orders are processed automatically and cannot be cancelled after submission. Please make sure to think and double-check your link before placing an order."
       },
       {
-        q: "What if I used a wrong link?",
-        a: "Orders are processed automatically and cannot be edited, changed, or cancelled once placed, even if you insert an incorrect link. Our system might occasionally detect a wrong link and cancel it, but this is rare. If the order is considered complete without delivery due to a wrong link, we cannot refund or refill."
+        q: "I placed an order with the wrong link — can you cancel and refund it?",
+        a: "This is an automatic server so after placing an order we can't edit, change, or cancel it even if you inserted the wrong link. Sometimes our server can detect a wrong link and cancel it, but this is very rare. If the server considers the order complete without delivery, we cannot refund or refill."
       },
       {
         q: "Why was my order cancelled?",
-        a: "Sometimes our system encounters a problem and is unable to process the order, leading to cancellation. If an order is cancelled, the amount is automatically refunded to your account balance. In this case, simply try ordering again."
+        a: "Sometimes the server encounters a problem and is unable to process the order, leading to cancellation. If an order is cancelled, the amount is automatically refunded to your account balance — check that the order cost shows 0 and verify your balance. In this case, simply try ordering again."
       }
     ]
   },
@@ -29,11 +52,11 @@ const FAQ_DATA = [
     questions: [
       {
         q: "What is Partial status?",
-        a: "Partial Status is when we partially refund the remains of an order. If we are unable to deliver the full quantity, we refund the undelivered amount to your user balance automatically. Example: You order 5000 units, we deliver 3000, and the remaining 2000 are refunded. Important: Partial orders are never eligible for refill."
+        a: "Partial Status is when we partially refund the remaining undelivered amount of an order.\n\nExample: You bought an order with quantity 5000 and charged $5. We delivered 3000 and couldn't deliver the remaining 2000, so we 'Partial' the order and refund you the remaining 2000 ($2 in this example). This refunded amount is automatically added to your user balance.\n\nImportant: Partial orders are never eligible for refill. If an order gets partial, the refill guarantee is automatically revoked and we are unable to refill such orders. If an order got partial, you can order again using another server."
       },
       {
         q: "What is Start Count?",
-        a: "Start count is the number of followers, likes, or views your page/post has at the moment you place the order. For example, if your Instagram page has 1000 followers when you order, the start count will be 1000."
+        a: "Start count is the number of current followers, likes, or views the page/post has at the moment you place the order.\n\nExample: Your Instagram page has 1000 followers now. If you order a followers service, the order start count will be 1000."
       }
     ]
   },
@@ -42,15 +65,15 @@ const FAQ_DATA = [
     questions: [
       {
         q: "What does Refill / No Refill mean?",
-        a: "If a service name includes 'Refill', check the description for the guarantee period (e.g., 30 days). 'No Refill' means the service has no guarantee and we are not responsible if the count drops at any time."
+        a: "If a service name includes 'Refill', check the description for how many days the refill guarantee applies. 'No Refill' means the service has no guarantee — it can drop at any time and we are not responsible for it. Do not contact us for a refill after purchasing a No Refill service."
       },
       {
         q: "What does [Non Drop] No Refill mean?",
-        a: "This means the service currently has no drop issues, but it is still a 'No Refill' service. We will not be able to refill any units even if a drop occurs due to server issues or social media updates. We recommend using 'Refill Guaranteed' services if you want protection against drops."
+        a: "This means the service currently has no drop issues, but it is still a No Refill service. We will not be able to refill even a single follower/like even if it drops 100% due to server issues or social media updates.\n\nMake sure to use a Refill Guaranteed service if you want protection against drops."
       },
       {
         q: "When is a refill guarantee revoked?",
-        a: "Refill guarantee is revoked if the 'start count' goes down after an order is completed. We are also unable to provide a refill if a post, page, or video is deleted after placing the order."
+        a: "Refill guarantee is revoked if the start count goes down after an order is completed. We are also unable to provide a refill if a post, page, or video is deleted after placing the order."
       }
     ]
   },
@@ -59,23 +82,24 @@ const FAQ_DATA = [
     questions: [
       {
         q: "What is Drip Feed?",
-        a: "Drip Feed allows you to split a large order into several smaller runs over time. For example, if you want 1000 likes but want them delivered as 100 likes every 30 minutes, you would set: Quantity: 100, Runs: 10, and Interval: 30. Note: Never set the interval below the actual service start time."
+        a: "Drip Feed lets you place the same order multiple times automatically over a set interval.\n\nExample: You want 1000 likes on your Instagram post but want 100 likes every 30 minutes:\n• Link: Your post link\n• Quantity: 100\n• Runs: 10 (10 × 100 = 1000 total)\n• Interval: 30 (minutes between each run)\n\nNote: Never order more total quantity than the service maximum (Quantity × Runs must not exceed the service max). Also never set the Interval below the actual service start time — some services need 60 minutes to start, so setting a lower interval will cause order failures."
       },
       {
         q: "How do I use Mass Order?",
-        a: "Mass Order lets you place multiple orders at once. Use the format: ServiceID|Link|Quantity (one per line). Example: 102|username1|1000 \n 102|username2|1000."
+        a: "Put the Service ID, followed by | , followed by the link, followed by | , followed by the quantity — one order per line.\n\nFormat: ID|Link|Quantity\n\nExample — adding 1000 Instagram followers to 3 accounts (service ID 102):\n102|abcd|1000\n102|asdf|1000\n102|qwer|1000\n\nTo find a service ID, check the Services page."
       }
     ]
   }
 ];
 
-const FAQItem = ({ question, answer }) => {
+const FAQItem = ({ question, answer, warning }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div style={{ 
       marginBottom: 12, borderRadius: 16, overflow: 'hidden', 
-      border: '1px solid rgba(172,200,162,0.15)', background: 'var(--card-bg)',
+      border: `1px solid ${warning ? 'rgba(231,76,60,0.2)' : 'rgba(172,200,162,0.15)'}`,
+      background: 'var(--card-bg)',
       transition: 'all 0.3s ease'
     }}>
       <button
@@ -83,11 +107,11 @@ const FAQItem = ({ question, answer }) => {
         style={{
           width: '100%', padding: '20px 24px', border: 'none', background: 'transparent',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          cursor: 'pointer', textAlign: 'left'
+          cursor: 'pointer', textAlign: 'left', gap: 16
         }}
       >
-        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-color)', pr: 20 }}>{question}</span>
-        {isOpen ? <FaChevronUp color="#ACC8A2" /> : <FaChevronDown color="var(--color-gray)" />}
+        <span style={{ fontSize: 16, fontWeight: 700, color: warning ? '#ff6b7a' : 'var(--text-color)' }}>{question}</span>
+        {isOpen ? <FaChevronUp color={warning ? '#ff6b7a' : '#ACC8A2'} style={{ flexShrink: 0 }} /> : <FaChevronDown color="var(--color-gray)" style={{ flexShrink: 0 }} />}
       </button>
       <AnimatePresence>
         {isOpen && (
@@ -99,9 +123,9 @@ const FAQItem = ({ question, answer }) => {
           >
             <div style={{ 
               padding: '0 24px 20px', fontSize: 15, color: 'var(--color-gray)', 
-              lineHeight: 1.6, whiteSpace: 'pre-line' 
+              lineHeight: 1.7, whiteSpace: 'pre-line' 
             }}>
-              <div style={{ height: 1, background: 'rgba(0,0,0,0.05)', marginBottom: 16 }} />
+              <div style={{ height: 1, background: warning ? 'rgba(231,76,60,0.1)' : 'rgba(0,0,0,0.05)', marginBottom: 16 }} />
               {answer}
             </div>
           </motion.div>
@@ -162,14 +186,20 @@ const FAQPage = () => {
           {filteredData.map((cat, idx) => (
             <div key={idx} className="mb-5">
               <h2 style={{ 
-                fontFamily: 'Poppins', fontWeight: 800, fontSize: 20, color: '#ACC8A2', 
+                fontFamily: 'Poppins', fontWeight: 800, fontSize: 20,
+                color: cat.warning ? '#ff6b7a' : '#ACC8A2',
                 marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10,
                 textTransform: 'uppercase', letterSpacing: 1
               }}>
-                <FaLightbulb size={18} /> {cat.category}
+                {cat.warning ? <FaExclamationTriangle size={18} /> : <FaLightbulb size={18} />} {cat.category}
               </h2>
+              {cat.warning && (
+                <div style={{ background: 'rgba(231,76,60,0.06)', border: '1px solid rgba(231,76,60,0.2)', borderRadius: 14, padding: '12px 18px', marginBottom: 16, fontSize: 14, color: '#ff6b7a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <FaExclamationTriangle size={14} /> Please read all points below carefully before placing any order.
+                </div>
+              )}
               {cat.questions.map((item, qIdx) => (
-                <FAQItem key={qIdx} question={item.q} answer={item.a} />
+                <FAQItem key={qIdx} question={item.q} answer={item.a} warning={cat.warning} />
               ))}
             </div>
           ))}

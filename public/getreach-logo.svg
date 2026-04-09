@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#1A2517"/>
+
+  <!-- Outer glow ring -->
+  <circle cx="256" cy="256" r="230" fill="none" stroke="#ACC8A2" stroke-width="6" opacity="0.15"/>
+
+  <!-- Leaf shape -->
+  <path d="
+    M256 120
+    C256 120 340 160 360 230
+    C380 300 340 370 256 390
+    C256 390 256 300 220 260
+    C184 220 172 180 256 120Z
+  " fill="url(#leafGrad)" opacity="0.95"/>
+
+  <!-- Leaf vein center -->
+  <path d="M256 390 Q248 300 256 120" stroke="#1A2517" stroke-width="3.5" fill="none" opacity="0.5"/>
+
+  <!-- Leaf veins -->
+  <path d="M256 200 Q290 210 340 220" stroke="#1A2517" stroke-width="2" fill="none" opacity="0.35"/>
+  <path d="M256 240 Q295 248 348 252" stroke="#1A2517" stroke-width="2" fill="none" opacity="0.35"/>
+  <path d="M256 280 Q292 290 342 300" stroke="#1A2517" stroke-width="2" fill="none" opacity="0.35"/>
+  <path d="M256 320 Q280 332 318 345" stroke="#1A2517" stroke-width="2" fill="none" opacity="0.35"/>
+
+  <!-- Small decorative dot cluster (growth dots) -->
+  <circle cx="185" cy="310" r="7" fill="#ACC8A2" opacity="0.5"/>
+  <circle cx="168" cy="330" r="5" fill="#ACC8A2" opacity="0.35"/>
+  <circle cx="195" cy="335" r="4" fill="#ACC8A2" opacity="0.25"/>
+
+  <!-- Text: GetReach -->
+  <text x="256" y="448" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="58" fill="#F5F0E8" text-anchor="middle" letter-spacing="-1">
+    Get<tspan fill="#ACC8A2">Reach</tspan>
+  </text>
+
+  <!-- Gradient definitions -->
+  <defs>
+    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ACC8A2;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#5a9e50;stop-opacity:1"/>
+    </linearGradient>
+  </defs>
+</svg>

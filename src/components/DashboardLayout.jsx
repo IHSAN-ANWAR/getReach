@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaLeaf, FaPlusCircle, FaListAlt, FaTicketAlt,
   FaUserCircle, FaBars, FaTimes, FaSignOutAlt, FaWallet, FaCloud,
-  FaSync, FaQuestionCircle, FaFacebook, FaInstagram, FaWhatsapp, FaEnvelope
+  FaSync, FaQuestionCircle, FaFacebook, FaInstagram, FaWhatsapp, FaEnvelope, FaStar
 } from 'react-icons/fa';
 import { SiTiktok } from 'react-icons/si';
 import DarkModeToggle from './DarkModeToggle';
@@ -17,21 +17,25 @@ import AddFundsPage from '../pages/AddFundsPage';
 import RefillPage from '../pages/RefillPage';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import FAQPage from '../pages/FAQPage';
+import ReviewsPage from '../pages/ReviewsPage';
 
-const navItems = [
+const getNavItems = (role) => [
   { path: '/',         label: 'New Order',    icon: <FaPlusCircle />, exact: true },
   { path: '/services', label: 'Services',     icon: <FaCloud /> },
   { path: '/orders',   label: 'My Orders',    icon: <FaListAlt /> },
-  { path: '/add-funds',label: 'Add Funds',    icon: <FaWallet /> },
+  // Add Funds is only for regular users — admins manage funds from the admin panel
+  ...(role !== 'admin' ? [{ path: '/add-funds', label: 'Add Funds', icon: <FaWallet /> }] : []),
   { path: '/refill',   label: 'Refill',       icon: <FaSync /> },
   { path: '/tickets',  label: 'Support Desk', icon: <FaTicketAlt />, badge: 0 },
   { path: '/faq',      label: 'FAQ',          icon: <FaQuestionCircle /> },
+  { path: '/reviews',  label: 'Reviews',      icon: <FaStar /> },
 ];
 
 const DashboardLayout = ({ user, onLogout, updateBalance }) => {
   const { darkMode, toggleDarkMode } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
+  const navItems = getNavItems(user?.role);
 
   const sidebarInner = (
     <div className="d-flex flex-column h-100">
@@ -185,74 +189,84 @@ const DashboardLayout = ({ user, onLogout, updateBalance }) => {
       }} className="main-viewport-container">
 
         <header style={{
-          padding: '16px 32px', 
+          padding: '12px 16px',
           background: 'var(--card-bg)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           position: 'sticky', top: 0, zIndex: 90,
           borderBottom: '1px solid rgba(0,0,0,0.04)',
           boxShadow: '0 4px 20px rgba(0,0,0,0.02)'
         }} className="desktop-header">
-           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <button
-                className="d-lg-none"
-                onClick={() => setSidebarOpen(true)}
-                style={{
-                  background: 'rgba(172,200,162,0.1)', border: 'none',
-                  borderRadius: 12, width: 44, height: 44, color: '#ACC8A2', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}
-              >
-                <FaBars size={22} />
-              </button>
-              <DarkModeToggle />
-           </div>
 
-           <div className="d-lg-none" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                 <FaLeaf color="#ACC8A2" size={20} />
-                 <span style={{ fontFamily: 'Poppins', fontWeight: 800, fontSize: 20, color: 'var(--text-color)' }}>GetReach</span>
-              </div>
-           </div>
-
-           <div style={{ flex: 1 }} />
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            <div 
+          {/* Left: hamburger + dark mode */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            <button
+              className="d-lg-none"
+              onClick={() => setSidebarOpen(true)}
               style={{
-                background: 'rgba(172,200,162,0.1)', 
-                border: '1px solid rgba(172,200,162,0.2)',
-                borderRadius: 14, padding: '8px 16px',
-                display: 'flex', alignItems: 'center', gap: 10,
-                cursor: 'default'
+                background: 'rgba(172,200,162,0.1)', border: 'none',
+                borderRadius: 12, width: 40, height: 40, color: '#ACC8A2',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}
             >
-              <div style={{ width: 32, height: 32, borderRadius: 10, background: '#ACC8A2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <FaWallet color="#1A2517" size={14} />
+              <FaBars size={20} />
+            </button>
+            <DarkModeToggle />
+          </div>
+
+          {/* Center: logo (mobile only) */}
+          <div className="d-lg-none" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <FaLeaf color="#ACC8A2" size={18} />
+              <span style={{ fontFamily: 'Poppins', fontWeight: 800, fontSize: 19, color: 'var(--text-color)', letterSpacing: '-0.3px' }}>
+                Get<span style={{ color: '#ACC8A2' }}>Reach</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Spacer for desktop */}
+          <div className="d-none d-lg-block" style={{ flex: 1 }} />
+
+          {/* Right: balance + profile */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+
+            {/* Balance — full on desktop, icon-only on mobile */}
+            <div style={{
+              background: 'rgba(172,200,162,0.1)',
+              border: '1px solid rgba(172,200,162,0.2)',
+              borderRadius: 12, padding: '7px 12px',
+              display: 'flex', alignItems: 'center', gap: 8,
+              cursor: 'default'
+            }}>
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: '#ACC8A2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <FaWallet color="#1A2517" size={13} />
               </div>
-              <div style={{ textAlign: 'left' }}>
+              {/* Balance text — hidden on mobile */}
+              <div className="d-none d-sm-block" style={{ textAlign: 'left' }}>
                 <div style={{ fontSize: 10, color: 'var(--color-gray)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>Balance</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: '#ACC8A2', lineHeight: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: '#ACC8A2', lineHeight: 1 }}>
                   Rs {(user?.balance ?? 0).toFixed(2)}
                 </div>
               </div>
             </div>
 
-            <div style={{ width: 1, height: 40, background: 'rgba(0,0,0,0.05)' }} />
+            <div className="d-none d-lg-block" style={{ width: 1, height: 36, background: 'rgba(0,0,0,0.05)' }} />
 
-            <div 
+            {/* Profile — name hidden on mobile, only avatar */}
+            <div
               onClick={() => navigate('/profile')}
-              style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
             >
-              <div className="text-end d-none d-sm-block">
-                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-color)', lineHeight: 1.2 }}>{user?.name || 'Demo User'}</div>
-                <div style={{ fontSize: 11, color: 'var(--color-gray)', fontWeight: 600 }}>Administrator Profile</div>
+              <div className="d-none d-lg-block" style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-color)', lineHeight: 1.2 }}>{user?.name || 'User'}</div>
+                <div style={{ fontSize: 11, color: 'var(--color-gray)', fontWeight: 600 }}>My Profile</div>
               </div>
               <div style={{
-                width: 48, height: 48, borderRadius: 16,
+                width: 40, height: 40, borderRadius: 13,
                 background: 'linear-gradient(135deg, #ACC8A2, #7aad6e)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 8px 15px rgba(172,200,162,0.2)'
+                boxShadow: '0 4px 12px rgba(172,200,162,0.2)', flexShrink: 0
               }}>
-                <FaUserCircle color="#1A2517" size={24} />
+                <FaUserCircle color="#1A2517" size={20} />
               </div>
             </div>
           </div>
@@ -262,11 +276,12 @@ const DashboardLayout = ({ user, onLogout, updateBalance }) => {
           <Routes>
             <Route path="/" element={<NewOrderPage user={user} updateBalance={updateBalance} />} />
             <Route path="/services" element={<ServicesPage />} />
-            <Route path="/add-funds" element={<AddFundsPage updateBalance={updateBalance} />} />
+            <Route path="/add-funds" element={<AddFundsPage user={user} updateBalance={updateBalance} />} />
             <Route path="/orders"  element={<MyOrdersPage user={user} />} />
             <Route path="/refill"  element={<RefillPage />} />
             <Route path="/tickets" element={<TicketsPage user={user} />} />
             <Route path="/faq"     element={<FAQPage />} />
+            <Route path="/reviews" element={<ReviewsPage />} />
             <Route path="/profile" element={<ProfilePage user={user} />} />
           </Routes>
         </main>

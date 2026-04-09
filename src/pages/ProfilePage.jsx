@@ -1,8 +1,21 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { FaUserCircle, FaEnvelope, FaLock, FaCheckCircle, FaWallet } from 'react-icons/fa';
+import { FaUserCircle, FaEnvelope, FaCheckCircle, FaWallet, FaSync, FaExclamationTriangle } from 'react-icons/fa';
 
-const ProfilePage = ({ user }) => {
+const ProfilePage = ({ user, adminMode }) => {
+  const [apiBalance, setApiBalance] = useState(null);
+  const [loadingBal, setLoadingBal] = useState(false);
+
+  const fetchApiBalance = () => {
+    if (!adminMode) return;
+    setLoadingBal(true);
+    fetch('http://localhost:5000/api/orders/balance')
+      .then(r => r.json())
+      .then(d => { setApiBalance(d?.balance ?? null); setLoadingBal(false); })
+      .catch(() => { setApiBalance('error'); setLoadingBal(false); });
+  };
+
+  useEffect(() => { fetchApiBalance(); }, [adminMode]);
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -25,14 +38,53 @@ const ProfilePage = ({ user }) => {
               <FaUserCircle size={54} color="#1A2517" />
             </div>
             <h2 style={{ fontFamily: 'Poppins', fontSize: 22, fontWeight: 700, marginBottom: 4 }}>{user?.name || 'Demo User'}</h2>
-            <p style={{ color: '#ACC8A2', fontWeight: 600, fontSize: 13, marginBottom: 20 }}>Verified Member</p>
-            <div className="mx-auto" style={{
-              background: 'rgba(172,200,162,0.15)', padding: '12px 24px', borderRadius: 14, border: '1px solid rgba(172,200,162,0.3)',
-              display: 'inline-flex', alignItems: 'center', gap: 10
-            }}>
-              <FaWallet size={16} color="#ACC8A2" />
-              <span style={{ fontSize: 18, fontWeight: 800, color: '#ACC8A2' }}>${(user?.balance ?? 0).toFixed(2)}</span>
-            </div>
+            <p style={{ color: '#ACC8A2', fontWeight: 600, fontSize: 13, marginBottom: 20 }}>
+              {adminMode ? 'Master Administrator' : 'Verified Member'}
+            </p>
+
+            {/* Balance widget */}
+            {adminMode ? (
+              // Admin — show API credit
+              <div style={{ background: 'rgba(172,200,162,0.1)', border: '1px solid rgba(172,200,162,0.25)', borderRadius: 16, padding: '16px 20px', textAlign: 'left' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(172,200,162,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 6 }}>
+                  API Credit Balance
+                </div>
+                {loadingBal ? (
+                  <div style={{ fontSize: 20, fontWeight: 900, color: '#ACC8A2' }}>...</div>
+                ) : apiBalance === 'error' ? (
+                  <div style={{ fontSize: 13, color: '#ff6b7a', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <FaExclamationTriangle size={12} /> Unavailable
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: apiBalance !== null && parseFloat(apiBalance) < 0.5 ? '#ff6b7a' : '#ACC8A2' }}>
+                      Rs {(parseFloat(apiBalance || 0) * 315).toFixed(2)}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'rgba(172,200,162,0.45)', fontWeight: 600, marginTop: 2 }}>
+                      ${parseFloat(apiBalance || 0).toFixed(4)} USD
+                    </div>
+                    {parseFloat(apiBalance || 0) < 0.5 && (
+                      <div style={{ marginTop: 6, fontSize: 11, color: '#ff6b7a', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <FaExclamationTriangle size={10} /> Low — top up soon
+                      </div>
+                    )}
+                  </>
+                )}
+                <button onClick={fetchApiBalance} disabled={loadingBal}
+                  style={{ marginTop: 12, padding: '6px 14px', borderRadius: 9, border: '1px solid rgba(172,200,162,0.2)', background: 'transparent', color: '#ACC8A2', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <FaSync size={10} style={loadingBal ? { animation: 'spin 1s linear infinite' } : {}} /> Refresh
+                </button>
+              </div>
+            ) : (
+              // Regular user — show PKR wallet balance
+              <div className="mx-auto" style={{
+                background: 'rgba(172,200,162,0.15)', padding: '12px 24px', borderRadius: 14, border: '1px solid rgba(172,200,162,0.3)',
+                display: 'inline-flex', alignItems: 'center', gap: 10
+              }}>
+                <FaWallet size={16} color="#ACC8A2" />
+                <span style={{ fontSize: 18, fontWeight: 800, color: '#ACC8A2' }}>Rs {(user?.balance ?? 0).toFixed(2)}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -77,3 +129,8 @@ const ProfilePage = ({ user }) => {
 };
 
 export default ProfilePage;
+
+// spin animation for refresh icon
+const _style = document.createElement('style');
+_style.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
+document.head.appendChild(_style);

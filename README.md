@@ -1,20 +1,380 @@
-# GetReach — Growth Platform
+# GetReach — Social Growth Platform
 
-A full-stack digital growth platform built with React + Vite on the frontend and Express + MongoDB Atlas on the backend. Supports user ordering, wallet balance, support tickets, and a private admin dashboard.
+Full-stack social growth platform for purchasing social media engagement (followers, views, likes) across TikTok, Instagram, YouTube, Facebook, and Twitter. Built for real production load with Node.js clustering, Redis caching, and rate limiting.
 
 ---
 
-## Tech Stack
+## Recent Changes (April 2026)
 
-| Layer     | Technology                                        |
-|-----------|---------------------------------------------------|
-| Frontend  | React 19, Vite 8, Bootstrap 5, Framer Motion      |
-| Backend   | Express 5, Node.js (ESM), Cluster mode            |
-| Database  | MongoDB Atlas via Mongoose 9                      |
-| Auth      | JWT (jsonwebtoken)                                |
-| Email     | Nodemailer (Gmail SMTP)                           |
-| Security  | express-rate-limit                                |
-| Growth API | PakFollowers API v2                              |
+### Reviews System (User-Facing)
+- Added a **Reviews** page in the user sidebar (`/reviews`)
+- 30 dummy customer reviews with realistic names, Urdu/English mixed text, service tags, and dates
+- Each review card shows: initial avatar (colored by user id), star rating, review text, date
+- **Heart like system** — red `FaHeart` button on each card, click to like/unlike, count updates live, liked state persists in `localStorage` across page refreshes, base counts pre-seeded (22–95) so reviews don't start at zero
+- Full-width layout, responsive grid (auto-fill, 300px min columns)
+- **Submit Review form** — name, service used, star rating picker, review text, optional screenshot upload (drag & drop or click to browse), success state after submit
+
+### Reviews Manager (Admin Panel)
+- Added **Reviews** nav item in admin sidebar (`/admin/reviews`)
+- Stats bar: Total Reviews, Visible, Hidden, Avg Rating — all with react-icons (no emojis)
+- Full list of all 30 reviews with inline edit mode (name, service, rating, text, date)
+- Per-review actions: Edit (inline), Show/Hide toggle (`FaEye`/`FaEyeSlash`), Delete (with confirm modal)
+- Add Review button — modal form to add new reviews
+- Full-width layout (no maxWidth cap)
+
+### Admin Login Fix
+- `.env` password had `#` character treated as comment — wrapped in quotes to fix truncation
+- Added dedicated `/api/admin-auth` endpoint (bypasses rate limiter which was blocking after failed attempts)
+- Admin login page now hits `/api/admin-auth` instead of `/api/login`
+- Killed zombie node processes that were serving stale code
+
+---
+
+## Tech Stack — Full Library Reference
+
+### Backend
+| Library | Version | Purpose |
+|---|---|---|
+| `express` | v5 | HTTP server & REST API routing |
+| `mongoose` | v9 | MongoDB ODM — schemas, models, queries |
+| `ioredis` | v5 | Redis client — login cache (5-min TTL) |
+| `jsonwebtoken` | v9 | JWT generation & verification for auth |
+| `bcryptjs` | v3 | Password hashing (rounds: 10) |
+| `helmet` | v8 | Security HTTP headers |
+| `compression` | v1 | Gzip response compression |
+| `express-rate-limit` | v6 | Auth route throttling |
+| `nodemailer` | v8 | Password reset + low-balance alert emails |
+| `cors` | v2 | Cross-origin request handling |
+| `dotenv` | v17 | Environment variable loading |
+| `cluster` (built-in) | Node.js | Multi-core process forking |
+| `os` (built-in) | Node.js | CPU core detection |
+
+### Frontend
+| Library | Version | Purpose |
+|---|---|---|
+| `react` | v19 | UI component framework |
+| `react-dom` | v19 | DOM rendering |
+| `react-router-dom` | v7 | Client-side routing |
+| `framer-motion` | v12 | Page & component animations |
+| `recharts` | v2 | Admin revenue & stats charts |
+| `react-countup` | v6 | Animated number counters |
+| `react-icons` | v5 | Icon library (FontAwesome set) |
+| `bootstrap` | v5 | Grid system & utility classes |
+| `axios` | v1 | HTTP client for API calls |
+| `canvas-confetti` | v1 | Confetti animation on order success |
+
+### Dev & Build
+| Tool | Purpose |
+|---|---|
+| `vite` v8 | Frontend bundler & dev server |
+| `@vitejs/plugin-react` | React fast-refresh for Vite |
+| `eslint` v9 | Code linting |
+| `k6` | Load testing (1k concurrent users) |
+
+### Infrastructure
+| Service | Purpose |
+|---|---|
+| MongoDB Atlas | Cloud database (users, orders, tickets, fund requests, service overrides) |
+| Redis | Login session cache — reduces DB hits on repeated logins |
+| Node.js Cluster | One worker process per CPU core — OS round-robin load balancing |
+| Gmail (Nodemailer) | Password reset emails + low API balance alerts |
+
+---
+
+## System Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                        CLIENT (Browser)                          │
+│                                                                  │
+│   User Dashboard                  Admin Panel                    │
+│   ├── New Order                   ├── Dashboard (stats/charts)   │
+│   ├── Services (browse)           ├── User Base                  │
+│   ├── My Orders                   ├── Services Manager           │
+│   ├── Add Funds                   ├── Fund Requests              │
+│   ├── Support Tickets             ├── Support CRM                │
+│   ├── FAQ                         ├── Revenue                    │
+│   └── Profile                     └── Settings                   │
+└──────────────────────┬───────────────────────────────────────────┘
+                       │  HTTP REST  :5000
+                       ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                  Node.js Cluster  (server.js)                    │
+│                                                                  │
+│  ┌─────────────┐   forks 1 worker per CPU core                  │
+│  │   PRIMARY   │──────────────────────────────────────────────┐ │
+│  │   PROCESS   │                                              │ │
+│  └─────────────┘                                              │ │
+│        │ auto-restarts crashed workers                        │ │
+│        ▼                                                      ▼ │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐       │
+│  │ Worker 1 │  │ Worker 2 │  │ Worker 3 │  │ Worker N │       │
+│  │ :5000    │  │ :5000    │  │ :5000    │  │ :5000    │       │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘       │
+│       └─────────────┴─────────────┴──────────────┘             │
+│                  OS Round-Robin Load Balancing                   │
+│                                                                  │
+│  Middleware stack per worker:                                    │
+│  cors → helmet → compression → express.json → rate-limit        │
+└──────────┬───────────────────────────┬───────────────────────────┘
+           │                           │
+    ┌──────▼──────┐             ┌──────▼──────┐
+    │   MongoDB   │             │    Redis    │
+    │   Atlas     │             │  :6379      │
+    │             │             │             │
+    │ collections:│             │ login cache │
+    │ users       │             │ key: user:  │
+    │ orders      │             │   {email}   │
+    │ tickets     │             │ TTL: 5 min  │
+    │ fundrequests│             └─────────────┘
+    │ serviceoverrides          (graceful fallback
+    │             │              if unavailable)
+    └─────────────┘
+           │
+    ┌──────▼──────┐
+    │  Third-Party│
+    │  Growth API │
+    │             │
+    │ action:     │
+    │  services   │
+    │  add        │
+    │  status     │
+    │  balance    │
+    └─────────────┘
+```
+
+---
+
+## Data Flow Diagrams
+
+### 1. Service Fetch & Display Flow
+
+```
+Third-Party Growth API
+        │
+        │  GET action=services
+        │  (raw list: serviceId, name, rate USD, min, max)
+        ▼
+  orders.js route
+        │
+        ├── Check in-process cache (10-min TTL)
+        │   └── If fresh → return cached immediately
+        │
+        ├── Fetch ServiceOverride from MongoDB
+        │   (admin customizations: name, rate, hidden, category)
+        │
+        ├── Merge raw API data + overrides
+        │   raw.rate × MARKUP_MULTIPLIER × 315 = PKR display rate
+        │   override.rate wins if set by admin
+        │
+        ├── Filter out hidden services
+        │
+        └── Cache result → return to frontend
+                │
+                ▼
+        ServicesPage.jsx / OrderForm.jsx
+        (user sees: name, category, PKR rate, min/max qty)
+
+
+Admin Edit Flow:
+        AdminServicesPage.jsx
+                │
+                │  PUT /api/orders/admin/services/:serviceId
+                │  { name, rate, category, min, max, hidden }
+                ▼
+        ServiceOverride saved to MongoDB
+                │
+                └── servicesCache = null  ← cache busted immediately
+                    Next user request fetches fresh merged data
+```
+
+---
+
+### 2. Order Placement Flow
+
+```
+User (OrderForm.jsx)
+  fills: service, link, quantity
+        │
+        │  POST /api/orders/place-order
+        │  { userId, serviceId, link, quantity }
+        ▼
+  Server (orders.js)
+        │
+        ├── Find user in MongoDB → check balance (PKR)
+        │
+        ├── Get service from cache → calculate charge
+        │   charge = (rate_PKR / 1000) × quantity
+        │
+        ├── balance < charge? → 400 Insufficient balance
+        │
+        ├── Call Third-Party Growth API
+        │   action=add, service, link, quantity
+        │   └── Returns: { order: apiOrderId }
+        │
+        ├── user.balance -= charge  → save to MongoDB
+        │
+        ├── Create Order document in MongoDB
+        │   { userId, serviceId, link, quantity,
+        │     price (PKR), apiCost (USD), apiOrderId, status: pending }
+        │
+        └── Return { success, order, newBalance }
+                │
+                ▼
+        Frontend: updateBalance() → localStorage + React state
+        Order appears in MyOrdersPage instantly
+
+Background sync (every 2 min):
+  Order.find({ status: active })
+        │
+        │  action=status, order=apiOrderId
+        ▼
+  Third-Party API → returns current status
+        │
+        └── Update order.status in MongoDB
+            (pending → processing → completed/partial/cancelled)
+```
+
+---
+
+### 3. Payment / Fund Deposit Flow
+
+```
+User (AddFundsPage.jsx)
+  fills: method (EasyPaisa/JazzCash), amount, TID
+        │
+        │  POST /api/fund-requests
+        │  { userId, method, amount, tid }
+        ▼
+  Server
+        │
+        ├── Validate: amount ≥ 50, TID not duplicate
+        ├── Block if user role = admin
+        └── Save FundRequest { status: "pending" }
+                │
+                ▼
+        Admin (AdminFundRequestsPage.jsx)
+        sees pending request in table
+                │
+                │  Admin manually verifies TID in EasyPaisa/JazzCash app
+                │
+                │  PATCH /api/fund-requests/:id
+                │  { status: "approved" / "rejected", note }
+                ▼
+        Server
+                │
+                ├── If approved:
+                │   User.balance += amount (PKR)
+                │   FundRequest.status = "approved"
+                │
+                └── If rejected:
+                    FundRequest.status = "rejected"
+                    FundRequest.note = reason
+
+        User sees updated balance on next login / page refresh
+```
+
+---
+
+### 4. Authentication Flow
+
+```
+Login Request
+  POST /api/login { email, password }
+        │
+        ├── Admin bypass check
+        │   email === ADMIN_USERNAME && password === ADMIN_PASSWORD  (from .env)
+        │   Brute-force: max 10 attempts/IP per 15 min (express-rate-limit)
+        │   └── Return admin JWT (no DB hit)
+        │
+        ├── Check Redis cache
+        │   key: user:{email}
+        │   └── Hit  → use cached user object
+        │   └── Miss → query MongoDB, cache result (5 min TTL)
+        │
+        ├── bcrypt.compare(password, user.password)
+        │   └── Legacy plain-text? → migrate to bcrypt on login
+        │
+        ├── Wrong password → 401
+        │
+        └── jwt.sign({ id, role }, JWT_SECRET, { expiresIn: 1d })
+                │
+                ▼
+        Frontend: store token + user in localStorage
+        React state updated → redirect to dashboard
+
+Token used on protected routes:
+  Authorization: Bearer <token>
+  Server: jwt.verify() → extract { id, role }
+```
+
+---
+
+### 5. Email Flow
+
+```
+Password Reset:
+  User clicks "Forgot Password" → POST /api/forgot-password
+        │
+        ├── Find user in MongoDB
+        ├── Generate crypto.randomBytes(32) token
+        ├── Save token + expiry (1 hour) to user document
+        └── Nodemailer → Gmail SMTP
+            To: user email
+            Body: reset link with token
+                    │
+                    ▼
+            User clicks link → /reset-password?token=xxx
+            POST /api/reset-password { token, newPassword }
+                    │
+                    ├── Validate token + expiry
+                    ├── bcrypt.hash(newPassword)
+                    └── Save new password, clear token
+
+Low API Balance Alert (runs every 1 hour):
+  setInterval → callGrowthAPI({ action: balance })
+        │
+        ├── balance < $0.32 USD threshold?
+        ├── Last alert > 6 hours ago?
+        └── Nodemailer → Gmail SMTP
+            To: ADMIN_ALERT_EMAIL
+            Subject: Low API Balance Alert
+            Body: current balance in USD + PKR
+```
+
+---
+
+## Component Architecture
+
+```
+App.jsx  (auth state, routing)
+  │
+  ├── /admin/*  →  AdminLayout.jsx
+  │     ├── Sidebar nav (NavLink active states)
+  │     ├── Header (notifications dropdown, API balance capsule, profile dropdown)
+  │     └── Routes:
+  │           AdminDashboardPage   — stats cards, charts, recent activity
+  │           AdminUsersPage       — user table, reset password modal
+  │           AdminServicesPage    — service publish/edit/hide/price
+  │           AdminFundRequestsPage— approve/reject deposits
+  │           AdminTicketsPage     — support CRM with reply thread
+  │           AdminRevenuePage     — revenue/profit charts (Recharts)
+  │           AdminSettingsPage    — pricing, API keys, email, admin password
+  │           ProfilePage (admin)  — shows live API credit balance
+  │
+  └── /*  →  DashboardLayout.jsx
+        ├── Sidebar nav (role-aware — Add Funds hidden for admin)
+        ├── Header (balance capsule, dark mode toggle, profile)
+        └── Routes:
+              NewOrderPage    — OrderForm.jsx (service select, link, qty)
+              ServicesPage    — browse all services with modal detail
+              MyOrdersPage    — order history with status badges
+              AddFundsPage    — EasyPaisa/JazzCash deposit form
+              TicketsPage     — create + view support tickets
+              ProfilePage     — user balance, email, change password
+              RefillPage      — refill requests
+              FAQPage         — accordion FAQ
+```
 
 ---
 
@@ -23,283 +383,182 @@ A full-stack digital growth platform built with React + Vite on the frontend and
 ```
 getreach/
 ├── server/
-│   ├── server.js              # Main Express app (clustered, rate-limited)
-│   ├── routes/
-│   │   └── orders.js          # Order placement, status, services
+│   ├── server.js              # Cluster entry, auth, tickets, fund requests
+│   ├── .env                   # Environment config (never commit)
 │   ├── models/
-│   │   └── Order.js           # Mongoose order schema
-│   ├── utils/
-│   │   └── pakfollowers.js    # Growth API wrapper
-│   ├── seed_ticket.js         # Seed script for test tickets
-│   ├── test_db.js             # MongoDB connection test
-│   ├── test_fetch_tickets.js  # Ticket fetch test
-│   ├── test_full_flow.js      # End-to-end order flow test
-│   ├── test_ticket.js         # Ticket creation test
-│   ├── test_ticket2.js        # Ticket reply/status test
-│   └── .env                   # Environment variables
+│   │   ├── Order.js           # Order schema (userId, serviceId, price, apiCost, status)
+│   │   ├── FundRequest.js     # Deposit schema (userId, method, amount, tid, status)
+│   │   └── ServiceOverride.js # Admin service customization schema
+│   ├── routes/
+│   │   └── orders.js          # Order CRUD + 10-min service cache + admin overrides
+│   └── utils/
+│       └── pakfollowers.js    # Growth API wrapper (action dispatcher)
 │
-└── src/
-    ├── App.jsx                # Routes & auth state
-    ├── main.jsx
-    ├── admin/
-    │   ├── AdminLayout.jsx        # Sidebar + header shell
-    │   ├── AdminLoginPage.jsx     # Private admin login (/admin/login)
-    │   ├── AdminTicketsPage.jsx   # Support CRM with tabs + pagination
-    │   └── AdminUsersPage.jsx     # User management + password reset modal
-    ├── components/
-    │   ├── LoginPage.jsx          # User login + forgot password (inline)
-    │   ├── RegisterPage.jsx       # Registration + Privacy Policy modal
-    │   ├── DashboardLayout.jsx    # User dashboard shell + sidebar
-    │   ├── OrderForm.jsx          # Place new order form
-    │   ├── DarkModeToggle.jsx     # Theme switcher
-    │   ├── StatsCards.jsx         # Dashboard stat cards
-    │   ├── SupportPage.jsx        # Support component
-    │   ├── LandingInfoPanel.jsx   # Landing info panel
-    │   └── TypewriterText.jsx     # Animated text
-    ├── pages/
-    │   ├── NewOrderPage.jsx       # Order placement
-    │   ├── MyOrdersPage.jsx       # Order history table
-    │   ├── TicketsPage.jsx        # Support desk (user side) + history table
-    │   ├── AddFundsPage.jsx       # Wallet top-up (EasyPaisa / JazzCash)
-    │   ├── ServicesPage.jsx       # Browse growth services
-    │   ├── ProfilePage.jsx        # Account settings
-    │   ├── RefillPage.jsx         # Refill requests for dropped orders
-    │   ├── FAQPage.jsx            # Searchable FAQ accordion
-    │   └── ResetPasswordPage.jsx  # Password reset via email token
-    └── context/
-        └── ThemeContext.jsx       # Dark/light mode context
+├── src/
+│   ├── App.jsx                # Root router + auth state + localStorage sync
+│   ├── main.jsx               # React entry point
+│   ├── index.css              # Global styles + CSS variables
+│   ├── theme.css              # Dark/light theme tokens
+│   ├── context/
+│   │   └── ThemeContext.jsx   # Dark mode context provider
+│   ├── components/
+│   │   ├── DashboardLayout.jsx
+│   │   ├── OrderForm.jsx
+│   │   ├── LoginPage.jsx
+│   │   ├── RegisterPage.jsx
+│   │   ├── StatsCards.jsx
+│   │   ├── SupportPage.jsx
+│   │   ├── DarkModeToggle.jsx
+│   │   ├── LandingInfoPanel.jsx
+│   │   └── TypewriterText.jsx
+│   ├── pages/
+│   │   ├── NewOrderPage.jsx
+│   │   ├── ServicesPage.jsx
+│   │   ├── MyOrdersPage.jsx
+│   │   ├── AddFundsPage.jsx
+│   │   ├── TicketsPage.jsx
+│   │   ├── ProfilePage.jsx
+│   │   ├── RefillPage.jsx
+│   │   ├── FAQPage.jsx
+│   │   └── ResetPasswordPage.jsx
+│   └── admin/
+│       ├── AdminLayout.jsx
+│       ├── AdminLoginPage.jsx
+│       ├── AdminDashboardPage.jsx
+│       ├── AdminUsersPage.jsx
+│       ├── AdminServicesPage.jsx
+│       ├── AdminTicketsPage.jsx
+│       ├── AdminRevenuePage.jsx
+│       ├── AdminFundRequestsPage.jsx
+│       └── AdminSettingsPage.jsx
+│
+├── k6_load_test.js            # Load test — 1k concurrent users, 3 scenarios
+├── vite.config.js
+├── eslint.config.js
+└── package.json
 ```
 
 ---
 
-## Features
+## Pricing Model
 
-### User Side
-- Register with Privacy & Policy acceptance (modal overlay, radio confirm)
-- Login with JWT session (persisted in localStorage)
-- Forgot password → email reset link (1-hour expiry token)
-- Set new password via `/reset-password?token=...`
-- Dashboard with balance, stats, order history
-- Browse growth services with markup-applied pricing
-- Place orders via the growth API
-- Wallet balance system — add funds via EasyPaisa / JazzCash with payment notice modal
-- Refill requests page for dropped orders (30-day guarantee services)
-- Support ticket system — submit, view full chat thread, see admin replies in real time (auto-refresh every 8s)
-- Ticket history table with status badges and reply indicator
-- Searchable FAQ page with accordion categories
-- Dark / light mode toggle
+```
+Growth API raw rate (USD per 1000 units)
+        × MARKUP_MULTIPLIER  (env var, default: 2 = 100% profit)
+        × 315                (USD → PKR conversion rate)
+        ─────────────────────────────────────────────
+        = Display rate shown to user (PKR per 1000)
 
-### Admin Dashboard (private — `/admin/login`)
-- Separate login page, not linked anywhere in the UI
-- Role-based guard — non-admin accounts are rejected with inline error
-- User management table with search
-- Reset any user's password via modal (lock icon per row)
-- Support CRM with clickable tab cards: Pending / In Review / Resolved / Closed
-- Live stat counts per status on each tab card
-- Inline reply panel with full chat thread
-- Two reply actions: "Reply" (keeps In Review) or "Reply & Resolve"
-- Pagination — 10 tickets per page, resets on tab/search change
-- Auto-refresh every 10s
+User charge  = (display_rate / 1000) × quantity   [PKR]
+API cost     = (raw_rate / 1000) × quantity        [USD]
+Your profit  = user_charge − (api_cost × 315)      [PKR]
+```
 
----
-
-## API Endpoints
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| POST | `/api/register` | Register new user (duplicate check, returns JWT) |
-| POST | `/api/login` | Login — user or admin |
-| GET | `/api/users` | List all users (admin) |
-| PATCH | `/api/users/:id/reset-password` | Reset user password (admin) |
-| GET | `/api/orders/services` | Fetch growth services (5min cache, markup applied) |
-| POST | `/api/orders/place-order` | Place order via growth API |
-| GET | `/api/orders/order-status/:id` | Check order status |
-| GET | `/api/orders/user/:userId` | Get user's orders |
-| POST | `/api/tickets` | Create support ticket |
-| GET | `/api/tickets?userId=` | Get tickets (filtered by user) |
-| PATCH | `/api/tickets/:id` | Update ticket — reply / status change |
-| POST | `/api/forgot-password` | Send password reset email |
-| POST | `/api/reset-password` | Set new password via token |
-
----
-
-## Rate Limiting
-
-| Route | Limit | Window |
-|-------|-------|--------|
-| All `/api/*` | 100 requests | 15 min |
-| `/api/login` + `/api/register` | 10 attempts | 15 min |
-| `/api/forgot-password` + `/api/reset-password` | 5 attempts | 1 hour |
-| `/api/orders/place-order` | 30 orders | 10 min |
+| Component | Example |
+|---|---|
+| Raw API rate | $0.50 / 1000 |
+| After markup (×2) | $1.00 / 1000 |
+| In PKR (×315) | Rs 315 / 1000 |
+| User orders 500 | Rs 157.50 charged |
+| API costs you | $0.25 = Rs 78.75 |
+| Your profit | Rs 78.75 |
 
 ---
 
 ## Environment Variables
 
-Create `server/.env`:
-
 ```env
-MONGODB_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net/getReach
-PORT=5000
-JWT_SECRET=your_jwt_secret
-
-PAKFOLLOWERS_API_URL=https://pakfollowers.com/api/v2
-PAKFOLLOWERS_API_KEY=your_api_key
-MARKUP_MULTIPLIER=2        # 2 = 100% markup on API price
-
-# Email — required for forgot password feature
-EMAIL_USER=your_gmail@gmail.com
-EMAIL_PASS=your_gmail_app_password
-FRONTEND_URL=http://localhost:5173
+MONGODB_URI=            # MongoDB Atlas connection string
+PORT=5000               # Server port (default 5000)
+JWT_SECRET=             # JWT signing secret (keep strong)
+API_URL=                # Growth API endpoint
+API_KEY=                # Growth API key
+MARKUP_MULTIPLIER=2     # Price markup (2 = 100% profit over API cost)
+REDIS_URL=              # redis://127.0.0.1:6379 (optional, graceful fallback)
+EMAIL_USER=             # Gmail address for sending emails
+EMAIL_PASS=             # Gmail App Password (16 chars, not account password)
+ADMIN_ALERT_EMAIL=      # Receives low API balance alerts
+FRONTEND_URL=           # http://localhost:5173 (used in reset email links)
+ADMIN_USERNAME=         # Admin panel login username (never use default)
+ADMIN_PASSWORD=         # Admin panel login password (use strong password)
 ```
-
-> Gmail requires a 16-char App Password. Enable 2FA → myaccount.google.com → Security → App Passwords.
 
 ---
 
 ## Running Locally
 
 ```bash
-# 1. Install frontend deps (from root)
 npm install
 
-# 2. Install server deps
-cd server && npm install
+# Terminal 1 — backend (starts clustered server)
+node server/server.js
 
-# 3. Start backend (from /server)
-node server.js
-
-# 4. Start frontend (from root)
+# Terminal 2 — frontend
 npm run dev
 ```
 
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:5000`
+Frontend: `http://localhost:5173`
+API: `http://localhost:5000`
+
+Redis is optional — if not running, server falls back to MongoDB-only with no cache.
 
 ---
 
-## Auth & Routing
+## Load Testing
 
-```
-/                    → User login (LoginPage)
-/register            → Register (with Privacy Policy modal)
-/reset-password?token=... → Set new password
+Uses [k6](https://k6.io) — simulates realistic user sessions:
 
-/admin/login         → Admin login (private, not linked in UI)
-/admin               → Redirects to /admin/login if not authenticated
-/admin/users         → User management
-/admin/tickets       → Support CRM
-```
+| Scenario | % of VUs | Flow |
+|---|---|---|
+| Browse + Orders | 70% | login → services → view orders |
+| Place Order | 20% | login → pick service → place order → view orders |
+| Support Ticket | 10% | login → submit ticket → fetch tickets |
 
-Sessions require both `gr_user` and `gr_token` in localStorage to be valid.
+```bash
+k6 run k6_load_test.js
 
----
-
-## Pricing / Markup
-
-Services are fetched from the growth API and marked up before display:
-
-```
-API cost:     Rs 1.00 / 1000
-Markup (2x):  Rs 2.00 / 1000  ← user pays
-Profit:       Rs 1.00 / 1000
+# Against staging/prod
+k6 run -e BASE_URL=https://your-domain.com k6_load_test.js
 ```
 
-`MARKUP_MULTIPLIER` in `.env` controls this. Original API cost is stored internally per order for profit tracking.
+**Thresholds:** p(95) < 2s · error rate < 5% · login p(95) < 3s · services p(95) < 800ms
+
+Results saved to `load_test_results.json`.
+
+> Windows note: connection-refused errors at high concurrency = TCP port exhaustion (OS limit, not app).
+> Fix: `netsh int ipv4 set dynamicport tcp start=10000 num=55000` + reduce `TcpTimedWaitDelay` to 30 in registry.
 
 ---
 
-## Deployment
+## Cluster Scaling
 
-### Frontend — Vercel
+```
+1 core  →  1 worker  →  ~100 req/s
+2 cores →  2 workers →  ~200 req/s
+4 cores →  4 workers →  ~400 req/s
+8 cores →  8 workers →  ~800 req/s
+```
 
-1. Push your repo to GitHub
-2. Go to [vercel.com](https://vercel.com) → New Project → import your repo
-3. Set the following in project settings:
-   - Framework Preset: `Vite`
-   - Root Directory: `/` (repo root)
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-4. Add environment variable:
-   ```
-   VITE_API_URL=https://your-backend-url.com
-   ```
-5. Deploy — Vercel handles CDN, HTTPS, and previews automatically
+Each worker: full Express app + own MongoDB connection pool (10 connections).
+Primary process: auto-restarts any crashed worker — zero downtime.
 
-> Make sure your `vite.config.js` proxy is removed or conditionally applied for production, and all API calls use `VITE_API_URL`.
+**Scaling roadmap:**
 
----
-
-### Backend — Render
-
-1. Go to [render.com](https://render.com) → New → Web Service
-2. Connect your GitHub repo
-3. Configure the service:
-   - Root Directory: `server`
-   - Build Command: `npm install`
-   - Start Command: `node server.js`
-   - Environment: `Node`
-4. Add all environment variables from `server/.env` in the Render dashboard:
-   ```
-   MONGODB_URI
-   PORT=10000          # Render assigns its own port, use process.env.PORT
-   JWT_SECRET
-   PAKFOLLOWERS_API_URL
-   PAKFOLLOWERS_API_KEY
-   MARKUP_MULTIPLIER
-   EMAIL_USER
-   EMAIL_PASS
-   FRONTEND_URL=https://your-vercel-app.vercel.app
-   ```
-5. Deploy — Render provides a public HTTPS URL for your API
-
-> Render free tier spins down after inactivity. Upgrade to a paid plan for always-on uptime.
+| When | Solution |
+|---|---|
+| 10k+ concurrent users | Nginx reverse proxy + multiple server instances |
+| Multi-server deploy | Move service cache from in-process → shared Redis |
+| High DB load | Upgrade MongoDB Atlas cluster tier |
+| Global users | Cloudflare CDN for static assets |
 
 ---
 
-### Backend — AWS EC2
+## Admin Access
 
-1. Launch an EC2 instance (Ubuntu 22.04 LTS recommended, t2.micro for starters)
-2. Open inbound ports: `22` (SSH), `80` (HTTP), `443` (HTTPS), `5000` (or your PORT)
-3. SSH into the instance and set up Node.js:
-   ```bash
-   curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-   sudo apt-get install -y nodejs
-   ```
-4. Clone your repo and install deps:
-   ```bash
-   git clone https://github.com/your/repo.git
-   cd repo/server && npm install
-   ```
-5. Create your `.env` file with all required variables
-6. Run with PM2 for process management:
-   ```bash
-   npm install -g pm2
-   pm2 start server.js --name getreach-api
-   pm2 save && pm2 startup
-   ```
-7. (Optional) Set up Nginx as a reverse proxy on port 80/443:
-   ```nginx
-   server {
-     listen 80;
-     server_name your-domain.com;
-     location / {
-       proxy_pass http://localhost:5000;
-       proxy_http_version 1.1;
-       proxy_set_header Upgrade $http_upgrade;
-       proxy_set_header Connection 'upgrade';
-       proxy_set_header Host $host;
-     }
-   }
-   ```
-8. Use [Certbot](https://certbot.eff.org/) for free SSL: `sudo certbot --nginx`
+```
+URL:       /admin/login
+Username:  set via ADMIN_USERNAME in server/.env
+Password:  set via ADMIN_PASSWORD in server/.env
+```
 
----
-
-## Notes
-
-- Server runs in Node.js cluster mode — one worker per CPU core, auto-restarts crashed workers
-- Password reset tokens expire after 1 hour and are cleared after use
-- Ticket chat auto-refreshes every 8s (user) / 10s (admin)
-- Admin dashboard URL is intentionally hidden — only accessible via direct URL `/admin/login`
-- Duplicate email registration returns a clear error instead of a generic 500
+Credentials are loaded from `.env` — never hardcoded. Brute-force protection: max 10 attempts per IP per 15 minutes.

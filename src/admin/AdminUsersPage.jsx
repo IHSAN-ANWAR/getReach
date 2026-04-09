@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaUserEdit, FaTrash, FaPlus, FaSearch, FaHistory, FaLock, FaTimes, FaEye, FaEyeSlash } from 'react-icons/fa';
 import axios from 'axios';
@@ -42,7 +42,7 @@ const AdminUsersPage = () => {
     setResetMsg('');
     try {
       await axios.patch(`http://localhost:5000/api/users/${resetTarget._id}/reset-password`, { newPassword });
-      setResetMsg('✓ Password reset successfully.');
+      setResetMsg('Γ£ô Password reset successfully.');
       setTimeout(() => { setResetTarget(null); setNewPassword(''); setResetMsg(''); }, 1500);
     } catch (err) {
       setResetMsg(err.response?.data?.error || 'Reset failed.');
@@ -151,7 +151,7 @@ const AdminUsersPage = () => {
           </table>
         </div>
       </div>
-      {/* ── RESET PASSWORD MODAL ── */}
+      {/* ΓöÇΓöÇ RESET PASSWORD MODAL ΓöÇΓöÇ */}
       <AnimatePresence>
         {resetTarget && (
           <motion.div
@@ -171,7 +171,7 @@ const AdminUsersPage = () => {
                   </div>
                   <div>
                     <div style={{ fontWeight: 900, color: '#2C2416', fontSize: 17 }}>Reset Password</div>
-                    <div style={{ fontSize: 12, color: 'rgba(44,36,22,0.45)', fontWeight: 600 }}>{resetTarget.name} · {resetTarget.email}</div>
+                    <div style={{ fontSize: 12, color: 'rgba(44,36,22,0.45)', fontWeight: 600 }}>{resetTarget.name} ┬╖ {resetTarget.email}</div>
                   </div>
                 </div>
                 <button onClick={() => setResetTarget(null)} style={{ background: 'transparent', border: 'none', color: 'rgba(44,36,22,0.4)', cursor: 'pointer', fontSize: 20 }}><FaTimes /></button>
@@ -196,7 +196,7 @@ const AdminUsersPage = () => {
               </div>
 
               {resetMsg && (
-                <div style={{ marginBottom: 14, fontSize: 13, fontWeight: 700, color: resetMsg.startsWith('✓') ? '#2e7d32' : '#c0392b' }}>
+                <div style={{ marginBottom: 14, fontSize: 13, fontWeight: 700, color: resetMsg.startsWith('Γ£ô') ? '#2e7d32' : '#c0392b' }}>
                   {resetMsg}
                 </div>
               )}
