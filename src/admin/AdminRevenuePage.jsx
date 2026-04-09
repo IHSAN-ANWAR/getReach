@@ -6,7 +6,6 @@ import {
 } from 'recharts';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
 const fmt = (n) => `${Number(n || 0).toFixed(2)}`;
 
 function fillDays(daily, days) {

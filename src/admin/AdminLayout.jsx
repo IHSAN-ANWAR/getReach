@@ -15,6 +15,8 @@ import AdminFundRequestsPage from './AdminFundRequestsPage';
 import ProfilePage from '../pages/ProfilePage';
 import AdminSettingsPage from './AdminSettingsPage';
 import AdminReviewsPage from './AdminReviewsPage';
+import API_BASE from '../config';
+import API_BASE from '../config';
 
 // Luxury beige palette
 const C = {
@@ -59,7 +61,7 @@ const AdminLayout = ({ user, onLogout }) => {
   // ── API Balance for header capsule ──
   const [apiBalance, setApiBalance] = useState(null);
   useEffect(() => {
-    fetch('http://localhost:5000/api/orders/balance')
+    fetch(`${API_BASE}/api/orders/balance`)
       .then(r => r.json())
       .then(d => setApiBalance(d?.balance ?? null))
       .catch(() => setApiBalance(null));

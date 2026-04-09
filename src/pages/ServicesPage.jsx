@@ -7,6 +7,7 @@ import {
   FaTag, FaLayerGroup, FaSortAmountUp, FaSortAmountDown
 } from 'react-icons/fa';
 import axios from 'axios';
+import API_BASE from '../config';
 
 const PLATFORMS = [
   { id: 'all',       label: 'All Services', icon: <FaFilter /> },
@@ -36,7 +37,7 @@ const ServicesPage = () => {
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    axios.get('http://localhost:5000/api/orders/services')
+    axios.get(`${API_BASE}/api/orders/services`)
       .then(res => setServices(Array.isArray(res.data) ? res.data : []))
       .catch(err => console.error('Failed to load services:', err))
       .finally(() => setLoading(false));

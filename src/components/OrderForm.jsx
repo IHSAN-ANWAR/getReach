@@ -6,6 +6,7 @@ import {
 } from 'react-icons/fa';
 import confetti from 'canvas-confetti';
 import axios from 'axios';
+import API_BASE from '../config';
 
 const fireConfetti = () => {
   confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['#ACC8A2', '#7aad6e', '#F5F0E8', '#1A2517'] });
@@ -56,7 +57,7 @@ const OrderForm = ({ user, updateBalance }) => {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/orders/services');
+        const res = await axios.get(`${API_BASE}/api/orders/services`);
         const data = Array.isArray(res.data) ? res.data : [];
         setServices(data);
 
@@ -159,7 +160,7 @@ const OrderForm = ({ user, updateBalance }) => {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/orders/place-order', {
+      const response = await fetch(`${API_BASE}/api/orders/place-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

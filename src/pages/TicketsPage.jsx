@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { FaCheckCircle, FaSyncAlt, FaPaperPlane, FaArrowLeft, FaUserShield, FaUserCircle } from 'react-icons/fa';
 import axios from 'axios';
+import API_BASE from '../config';
 
 const statusMap = {
   'Open':      { bg: 'rgba(232,168,56,0.15)',  color: '#b07d10' },
@@ -37,7 +38,7 @@ const TicketsPage = ({ user }) => {
     try {
       const uid = user._id || user.id;
       if (!uid) return;
-      const resp = await axios.get(`http://localhost:5000/api/tickets?userId=${uid}`);
+      const resp = await axios.get(`${API_BASE}/api/tickets?userId=${uid}`);
       setTickets(resp.data);
       if (selectedRef.current) {
         const updated = resp.data.find(t => t._id === selectedRef.current._id);
@@ -55,7 +56,7 @@ const TicketsPage = ({ user }) => {
     setLoading(true);
     try {
       const uid = user._id || user.id;
-      const resp = await axios.post('http://localhost:5000/api/tickets', {
+      const resp = await axios.post(`${API_BASE}/api/tickets`, {
         userId: uid,
         subject: `[${formData.category}] ${formData.subject}`,
         message: formData.message

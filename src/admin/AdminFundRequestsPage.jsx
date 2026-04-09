@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaWallet, FaCheck, FaTimes, FaClock, FaSearch, FaSync, FaMobileAlt, FaMoneyBillWave } from 'react-icons/fa';
 import axios from 'axios';
+import API_BASE from '../config';
 
-const API = 'http://localhost:5000';
+const API = API_BASE;
 
 const STATUS = {
   pending:  { label: 'Pending',  color: '#e8a838', bg: 'rgba(232,168,56,0.12)',  icon: FaClock },

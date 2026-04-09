@@ -5,8 +5,9 @@ import {
   FaMoneyBillWave, FaSave, FaEye, FaEyeSlash, FaCheckCircle, FaExclamationTriangle
 } from 'react-icons/fa';
 import axios from 'axios';
+import API_BASE from '../config';
 
-const API = 'http://localhost:5000';
+const API = API_BASE;
 
 const Section = ({ icon, title, children }) => (
   <div style={{ background: '#FDFAF5', border: '1px solid #E8E2D9', borderRadius: 20, padding: '28px 32px', marginBottom: 24 }}>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { FaLeaf, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaHeadset, FaRocket, FaShieldAlt, FaChartLine } from 'react-icons/fa';
+import API_BASE from '../config';
 
 const CounterTicker = ({ value, duration = 3, suffix = "" }) => {
   const count = useMotionValue(0);
@@ -27,7 +28,7 @@ const LoginPage = ({ onLogin }) => {
     e.preventDefault();
     setForgotLoading(true);
     try {
-      await fetch('http://localhost:5000/api/forgot-password', {
+      await fetch(`${API_BASE}/api/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail })
@@ -44,7 +45,7 @@ const LoginPage = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/login', {
+      const response = await fetch(`${API_BASE}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })

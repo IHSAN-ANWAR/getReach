@@ -7,8 +7,9 @@ import {
   FaBolt, FaCheck
 } from 'react-icons/fa';
 import axios from 'axios';
+import API_BASE from '../config';
 
-const API = 'http://localhost:5000/api/orders';
+const API = `${API_BASE}/api/orders`;
 
 const PLATFORM_MAP = [
   { key: 'tiktok',    label: 'TikTok',    icon: <FaTiktok />,    color: '#010101' },

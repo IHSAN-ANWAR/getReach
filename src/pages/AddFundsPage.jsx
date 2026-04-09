@@ -5,6 +5,7 @@ import {
   FaInfoCircle, FaCheckCircle, FaExclamationTriangle,
   FaUniversity, FaCopy, FaMobileAlt, FaShieldVirus, FaTimes
 } from 'react-icons/fa';
+import API_BASE from '../config';
 
 const PAYMENT_METHODS = [
   { id: 'easypaisa', label: 'EasyPaisa', icon: <FaMobileAlt />, color: '#1ebc61', desc: 'Instant Deposit' },
@@ -43,7 +44,7 @@ const AddFundsPage = ({ updateBalance, user }) => {
     setLoading(true);
     try {
       const userId = user?.id || user?._id;
-      await fetch('http://localhost:5000/api/fund-requests', {
+      await fetch(`${API_BASE}/api/fund-requests`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, method, amount: val, tid: tid.trim() })

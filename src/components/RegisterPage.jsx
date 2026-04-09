@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform, animate } from '
 import { Link, useNavigate } from 'react-router-dom';
 import { FaLeaf, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaUser, FaRocket, FaShieldAlt, FaChartLine, FaCheckCircle, FaHeadset, FaGoogle } from 'react-icons/fa';
 import axios from 'axios';
+import API_BASE from '../config';
 
 const CounterTicker = ({ value, duration = 3, suffix = "" }) => {
   const count = useMotionValue(0);
@@ -42,7 +43,7 @@ const RegisterPage = ({ onLogin }) => {
     setLoading(true);
 
     try {
-      const resp = await axios.post('http://localhost:5000/api/register', {
+      const resp = await axios.post(`${API_BASE}/api/register`, {
         name: formData.name,
         email: formData.email,
         password: formData.password

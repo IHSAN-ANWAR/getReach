@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FaUserCircle, FaEnvelope, FaCheckCircle, FaWallet, FaSync, FaExclamationTriangle } from 'react-icons/fa';
+import API_BASE from '../config';
 
 const ProfilePage = ({ user, adminMode }) => {
   const [apiBalance, setApiBalance] = useState(null);
@@ -9,7 +10,7 @@ const ProfilePage = ({ user, adminMode }) => {
   const fetchApiBalance = () => {
     if (!adminMode) return;
     setLoadingBal(true);
-    fetch('http://localhost:5000/api/orders/balance')
+    fetch(`${API_BASE}/api/orders/balance`)
       .then(r => r.json())
       .then(d => { setApiBalance(d?.balance ?? null); setLoadingBal(false); })
       .catch(() => { setApiBalance('error'); setLoadingBal(false); });

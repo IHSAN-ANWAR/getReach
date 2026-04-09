@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaLeaf, FaLock, FaEye, FaEyeSlash, FaCheckCircle, FaEnvelope } from 'react-icons/fa';
+import API_BASE from '../config';
 
 const ResetPasswordPage = () => {
   const [params] = useSearchParams();
@@ -20,7 +21,7 @@ const ResetPasswordPage = () => {
     setLoading(true);
     setError('');
     try {
-      const resp = await fetch('http://localhost:5000/api/reset-password', {
+      const resp = await fetch(`${API_BASE}/api/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, newPassword: password })

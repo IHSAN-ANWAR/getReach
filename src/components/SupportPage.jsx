@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FaHeadset, FaPaperPlane, FaSpinner, FaHistory, FaCheckCircle, FaStar } from 'react-icons/fa';
 import axios from 'axios';
+import API_BASE from '../config';
 
 const SupportPage = ({ user }) => {
   const [subject, setSubject] = useState('');
@@ -13,7 +14,7 @@ const SupportPage = ({ user }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/tickets', {
+      await axios.post(`${API_BASE}/api/tickets`, {
         userId: user.id || user._id, 
         subject,
         message

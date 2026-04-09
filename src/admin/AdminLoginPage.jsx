@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { FaUserShield, FaLock, FaEnvelope, FaEye, FaEyeSlash, FaChevronRight, FaArrowLeft } from 'react-icons/fa';
+import API_BASE from '../config';
 
 const C = { bg: '#F5F0E8', card: '#FDFAF5', border: '#D9D2C5', dark: '#2C2416', accent: '#8B7355', accentLt: '#C4A882', muted: 'rgba(44,36,22,0.45)' };
 
@@ -18,7 +19,7 @@ const AdminLoginPage = ({ onAdminLogin }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('http://localhost:5000/api/admin-auth', {
+      const response = await fetch(`${API_BASE}/api/admin-auth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })

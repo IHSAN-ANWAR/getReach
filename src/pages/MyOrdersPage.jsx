@@ -6,8 +6,9 @@ import {
   FaBan, FaTimes, FaSpinner
 } from 'react-icons/fa';
 import axios from 'axios';
+import API_BASE from '../config';
 
-const API = 'http://localhost:5000';
+const API = API_BASE;
 const TERMINAL = ['completed', 'partial', 'cancelled', 'refunded'];
 
 // ── Status config ──

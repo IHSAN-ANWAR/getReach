@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaCheckDouble, FaHistory, FaSearch, FaUserCircle, FaSyncAlt, FaEnvelopeOpen, FaReply, FaTimes, FaPaperPlane } from 'react-icons/fa';
 import axios from 'axios';
+import API_BASE from '../config';
 
 const BG    = '#F5F0E8';
 const CARD  = '#FDFAF5';
@@ -28,7 +29,7 @@ const AdminTicketsPage = () => {
 
   const fetchTickets = async () => {
     try {
-      const resp = await axios.get('http://localhost:5000/api/tickets');
+      const resp = await axios.get(`${API_BASE}/api/tickets`);
       setTickets(resp.data);
     } catch (err) {
       console.error('Ticket Fetch Error:', err);
@@ -45,7 +46,7 @@ const AdminTicketsPage = () => {
 
   const updateStatus = async (id, status) => {
     try {
-      await axios.patch(`http://localhost:5000/api/tickets/${id}`, { status });
+      await axios.patch(`${API_BASE}/api/tickets/${id}`, { status });
       setTickets(prev => prev.map(t => t._id === id ? { ...t, status } : t));
     } catch (err) {
       console.error('Update failed:', err);
@@ -56,7 +57,7 @@ const AdminTicketsPage = () => {
     if (!replyText.trim()) return;
     setSending(true);
     try {
-      const resp = await axios.patch(`http://localhost:5000/api/tickets/${id}`, {
+      const resp = await axios.patch(`${API_BASE}/api/tickets/${id}`, {
         adminReply: replyText,
         status: resolveStatus
       });

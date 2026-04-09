@@ -6,7 +6,6 @@ import {
 } from 'recharts';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
 const CARDS = [
   { key: 'totalUsers',   label: 'Total Users',   color: '#ACC8A2', bg: '#1A2517', icon: <FaUsers size={20} /> },
   { key: 'totalOrders',  label: 'Total Orders',  color: '#9B8FE8', bg: '#1C1A2E', icon: <FaShoppingCart size={20} /> },
