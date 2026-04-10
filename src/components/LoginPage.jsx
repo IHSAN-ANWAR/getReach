@@ -15,8 +15,8 @@ const CounterTicker = ({ value, duration = 3, suffix = "" }) => {
 };
 
 const LoginPage = ({ onLogin }) => {
-  const [email, setEmail] = useState('demo@getreach.pk');
-  const [password, setPassword] = useState('123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
