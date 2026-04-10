@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaLeaf, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaUser, FaRocket, FaShieldAlt, FaChartLine, FaCheckCircle, FaHeadset, FaGoogle } from 'react-icons/fa';
+import { FaLeaf, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaUser, FaCheckCircle, FaHeadset, FaGoogle, FaTimes } from 'react-icons/fa';
 import axios from 'axios';
 import API_BASE from '../config';
 
@@ -27,16 +27,31 @@ const POLICY_TEXT = [
 
 const RegisterPage = ({ onLogin }) => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [agreed, setAgreed] = useState(false);
   const [policyError, setPolicyError] = useState(false);
-  const [showPolicy, setShowPolicy] = useState(false);
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+
+  const validate = () => {
+    const errs = {};
+    if (!formData.name.trim()) errs.name = 'Name is required.';
+    else if (formData.name.trim().length < 2) errs.name = 'Name must be at least 2 characters.';
+    if (!formData.email.trim()) errs.email = 'Email is required.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errs.email = 'Enter a valid email address.';
+    if (!formData.password) errs.password = 'Password is required.';
+    else if (formData.password.length < 6) errs.password = 'Password must be at least 6 characters.';
+    return errs;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
+    setFieldErrors({});
     if (!agreed) { setPolicyError(true); return; }
     setPolicyError(false);
     setError('');
@@ -185,7 +200,7 @@ const RegisterPage = ({ onLogin }) => {
             <div className="mb-4">
               <button 
                 type="button" 
-                onClick={() => alert('Secure Google Handshake Initializing...')}
+                onClick={() => setShowGoogleModal(true)}
                 style={{ 
                   width: '100%', padding: '18px', borderRadius: 16, border: '2px solid rgba(255,255,255,0.1)', 
                   background: 'rgba(255,255,255,0.03)', color: '#F5F0E8', fontWeight: 800, fontSize: 16, 
@@ -206,28 +221,37 @@ const RegisterPage = ({ onLogin }) => {
               <div className="mb-4">
                 <label style={{ display: 'block', color: 'rgba(245,240,232,0.6)', fontWeight: 700, marginBottom: 12, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1.5 }}>Full Name</label>
                 <div style={{ position: 'relative' }}>
-                  <FaUser style={{ position: 'absolute', left: 18, top: '50%', transform: 'translateY(-50%)', color: 'rgba(172,200,162,0.7)' }} />
-                  <input type="text" required placeholder="Agency Owner Name" className="form-control shadow-none" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} style={{ padding: '18px 18px 18px 54px', background: 'rgba(255,255,255,0.04)', border: '2px solid rgba(255,255,255,0.1)', borderRadius: 16, color: '#fff', fontSize: 17 }} />
+                  <FaUser style={{ position: 'absolute', left: 18, top: '50%', transform: 'translateY(-50%)', color: fieldErrors.name ? '#ff6b7a' : 'rgba(172,200,162,0.7)' }} />
+                  <input type="text" placeholder="Agency Owner Name" className="form-control shadow-none" value={formData.name}
+                    onChange={(e) => { setFormData({...formData, name: e.target.value}); setFieldErrors(p => ({...p, name: ''})); }}
+                    style={{ padding: '18px 18px 18px 54px', background: 'rgba(255,255,255,0.04)', border: `2px solid ${fieldErrors.name ? 'rgba(255,107,122,0.5)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 16, color: '#fff', fontSize: 17 }} />
                 </div>
+                {fieldErrors.name && <div style={{ marginTop: 6, fontSize: 12, color: '#ff6b7a', fontWeight: 700 }}>⚠ {fieldErrors.name}</div>}
               </div>
 
               <div className="mb-4">
                 <label style={{ display: 'block', color: 'rgba(245,240,232,0.6)', fontWeight: 700, marginBottom: 12, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1.5 }}>Email Address</label>
                 <div style={{ position: 'relative' }}>
-                  <FaEnvelope style={{ position: 'absolute', left: 18, top: '50%', transform: 'translateY(-50%)', color: 'rgba(172,200,162,0.7)' }} />
-                  <input type="email" required placeholder="business@agency.com" className="form-control shadow-none" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} style={{ padding: '18px 18px 18px 54px', background: 'rgba(255,255,255,0.04)', border: '2px solid rgba(255,255,255,0.1)', borderRadius: 16, color: '#fff', fontSize: 17 }} />
+                  <FaEnvelope style={{ position: 'absolute', left: 18, top: '50%', transform: 'translateY(-50%)', color: fieldErrors.email ? '#ff6b7a' : 'rgba(172,200,162,0.7)' }} />
+                  <input type="text" placeholder="business@agency.com" className="form-control shadow-none" value={formData.email}
+                    onChange={(e) => { setFormData({...formData, email: e.target.value}); setFieldErrors(p => ({...p, email: ''})); }}
+                    style={{ padding: '18px 18px 18px 54px', background: 'rgba(255,255,255,0.04)', border: `2px solid ${fieldErrors.email ? 'rgba(255,107,122,0.5)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 16, color: '#fff', fontSize: 17 }} />
                 </div>
+                {fieldErrors.email && <div style={{ marginTop: 6, fontSize: 12, color: '#ff6b7a', fontWeight: 700 }}>⚠ {fieldErrors.email}</div>}
               </div>
 
               <div className="mb-4">
                 <label style={{ display: 'block', color: 'rgba(245,240,232,0.6)', fontWeight: 700, marginBottom: 12, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1.5 }}>Account Password</label>
                 <div style={{ position: 'relative' }}>
-                  <FaLock style={{ position: 'absolute', left: 18, top: '50%', transform: 'translateY(-50%)', color: 'rgba(172,200,162,0.7)' }} />
-                  <input type={showPass ? "text" : "password"} required placeholder="Secure Access Key" className="form-control shadow-none" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} style={{ padding: '18px 54px 18px 54px', background: 'rgba(255,255,255,0.04)', border: '2px solid rgba(255,255,255,0.1)', borderRadius: 16, color: '#fff', fontSize: 17 }} />
+                  <FaLock style={{ position: 'absolute', left: 18, top: '50%', transform: 'translateY(-50%)', color: fieldErrors.password ? '#ff6b7a' : 'rgba(172,200,162,0.7)' }} />
+                  <input type={showPass ? "text" : "password"} placeholder="Min 6 characters" className="form-control shadow-none" value={formData.password}
+                    onChange={(e) => { setFormData({...formData, password: e.target.value}); setFieldErrors(p => ({...p, password: ''})); }}
+                    style={{ padding: '18px 54px 18px 54px', background: 'rgba(255,255,255,0.04)', border: `2px solid ${fieldErrors.password ? 'rgba(255,107,122,0.5)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 16, color: '#fff', fontSize: 17 }} />
                   <div onClick={() => setShowPass(!showPass)} style={{ position: 'absolute', right: 18, top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: 'rgba(245,240,232,0.4)' }}>
                     {showPass ? <FaEyeSlash /> : <FaEye />}
                   </div>
                 </div>
+                {fieldErrors.password && <div style={{ marginTop: 6, fontSize: 12, color: '#ff6b7a', fontWeight: 700 }}>⚠ {fieldErrors.password}</div>}
               </div>
 
               {/* ── PRIVACY & POLICY ── */}
@@ -290,6 +314,37 @@ const RegisterPage = ({ onLogin }) => {
           </div>
         </motion.div>
       </div>
+      {/* ── GOOGLE COMING SOON MODAL ── */}
+      <AnimatePresence>
+        {showGoogleModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setShowGoogleModal(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 1001, background: 'rgba(10,16,9,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9 }}
+              onClick={e => e.stopPropagation()}
+              style={{ background: '#0f1a0d', border: '1.5px solid rgba(172,200,162,0.2)', borderRadius: 24, padding: '40px 36px', maxWidth: 420, width: '100%', textAlign: 'center', boxShadow: '0 30px 80px rgba(0,0,0,0.6)' }}
+            >
+              <div style={{ width: 64, height: 64, borderRadius: 18, background: 'rgba(234,67,53,0.1)', border: '1px solid rgba(234,67,53,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                <FaGoogle size={28} color="#ea4335" />
+              </div>
+              <h3 style={{ color: '#F5F0E8', fontWeight: 900, fontSize: 22, marginBottom: 10 }}>Google Login</h3>
+              <p style={{ color: 'rgba(245,240,232,0.5)', fontSize: 15, lineHeight: 1.7, marginBottom: 28 }}>
+                Google Sign-In is coming soon. For now, please register with your email and password below.
+              </p>
+              <button
+                onClick={() => setShowGoogleModal(false)}
+                style={{ padding: '13px 36px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg, #ACC8A2, #7aad6e)', color: '#1A2517', fontWeight: 900, fontSize: 15, cursor: 'pointer' }}
+              >
+                Got it
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── POLICY MODAL ── */}
       <AnimatePresence>
         {showPolicy && (
