@@ -16,7 +16,6 @@ import ProfilePage from '../pages/ProfilePage';
 import AdminSettingsPage from './AdminSettingsPage';
 import AdminReviewsPage from './AdminReviewsPage';
 import API_BASE from '../config';
-import API_BASE from '../config';
 
 // Luxury beige palette
 const C = {
