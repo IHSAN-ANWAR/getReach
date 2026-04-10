@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaLeaf, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaUser, FaCheckCircle, FaHeadset, FaGoogle, FaTimes } from 'react-icons/fa';
+import { FaLeaf, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaUser, FaCheckCircle, FaHeadset, FaGoogle, FaShieldAlt } from 'react-icons/fa';
 import axios from 'axios';
 import API_BASE from '../config';
 
