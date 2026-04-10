@@ -238,6 +238,7 @@ const LoginPage = ({ onLogin }) => {
                         className="form-control shadow-none"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        placeholder="your@email.com"
                         style={{
                           background: 'rgba(255,255,255,0.04)', border: '2px solid rgba(255,255,255,0.1)',
                           borderRadius: 16, padding: '18px 18px 18px 60px', color: '#fff', fontSize: 17,
@@ -259,6 +260,7 @@ const LoginPage = ({ onLogin }) => {
                         className="form-control shadow-none"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
                         style={{
                           background: 'rgba(255,255,255,0.04)', border: '2px solid rgba(255,255,255,0.1)',
                           borderRadius: 16, padding: '18px 64px 18px 60px', color: '#fff', fontSize: 17
