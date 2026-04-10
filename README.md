@@ -6,6 +6,60 @@ Full-stack social growth platform for purchasing social media engagement (follow
 
 ## Recent Changes (April 2026)
 
+### Deployment Status
+- **Frontend:** Netlify (deploy from `IHSAN-ANWAR/getReach`, build: `npm run build`, publish: `dist`)
+- **Backend:** Back4App (Docker container, `server/` folder, Node 20)
+- **Database:** MongoDB Atlas (already connected)
+- `public/_redirects` added for Netlify SPA routing
+- `vercel.json` added for Vercel SPA routing (if switching back)
+- `Dockerfile` at root + `server/Dockerfile` for Back4App
+
+### Backend Environment Variables (Back4App)
+Set these in Back4App → Settings → Environment Variables:
+```
+MONGODB_URI, PORT=5000, JWT_SECRET, PAKFOLLOWERS_API_URL, PAKFOLLOWERS_API_KEY,
+MARKUP_MULTIPLIER=2, ADMIN_USERNAME=getreach_admin, ADMIN_PASSWORD=GetReach2026,
+EMAIL_USER, EMAIL_PASS, ADMIN_ALERT_EMAIL, FRONTEND_URL, RENDER_SERVICE_URL
+```
+
+### Frontend Environment Variable (Netlify)
+```
+VITE_API_URL = https://<your-back4app-url>.b4a.run
+```
+
+### Auth & Forms
+- Login form: custom validation (no HTML `required`), inline error messages, no alert popups
+- Register form: name/email/password validation with red border + error text
+- Google Sign-In button shows "Coming Soon" modal
+- Admin login: "Forgot Password?" button added
+- Pre-filled demo credentials removed from login form
+
+### Reviews System (User-Facing)
+- Reviews page in sidebar (`/reviews`) with 30 dummy reviews
+- Heart like system — red FaHeart, localStorage persisted, base counts pre-seeded
+- Submit Review form with drag-and-drop screenshot upload
+
+### Reviews Manager (Admin Panel)
+- `/admin/reviews` — edit, hide/show, delete reviews
+- Stats: Total, Visible, Hidden, Avg Rating
+- Add Review modal
+- Full-width layout, react-icons only (no emojis)
+
+### Admin Panel Extras
+- Bulk "Publish All" button in Services Manager
+- User Management: Add Balance modal + Reset Password modal
+- Admin login: Forgot Password flow
+
+### Bug Fixes
+- Duplicate `API_BASE` import in AdminLayout removed (was breaking Vercel build)
+- `FaShieldAlt` missing import in RegisterPage fixed (blank screen bug)
+- `showPolicy` state missing in RegisterPage fixed
+- `trust proxy` added to Express for Back4App reverse proxy
+- Admin password `#` character issue fixed (use `GetReach2026` without special chars)
+- Self-ping every 14 min to prevent sleep (uses `RENDER_SERVICE_URL` env var)
+
+---
+
 ### Reviews System (User-Facing)
 - Added a **Reviews** page in the user sidebar (`/reviews`)
 - 30 dummy customer reviews with realistic names, Urdu/English mixed text, service tags, and dates
