@@ -72,7 +72,7 @@ const RegisterPage = ({ onLogin }) => {
       }
     } catch (err) {
       setLoading(false);
-      const msg = err.response?.data?.error || 'Registration failed. Try again.';
+      const msg = err.response?.data?.error || err.message?.includes('fetch') ? 'Unable to connect. Please try again.' : (err.response?.data?.error || 'Registration failed. Try again.');
       setError(msg);
     }
   };

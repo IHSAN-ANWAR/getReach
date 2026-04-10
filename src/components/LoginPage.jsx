@@ -69,7 +69,7 @@ const LoginPage = ({ onLogin }) => {
       if (!response.ok) throw new Error(data.error || 'Login failed');
       onLogin(data.user, data.token);
     } catch (err) {
-      setLoginError(err.message);
+      setLoginError(err.message?.includes('fetch') ? 'Unable to connect to server. Please try again.' : err.message);
     } finally {
       setLoading(false);
     }
