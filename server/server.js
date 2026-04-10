@@ -61,6 +61,7 @@ if (cluster.isPrimary) {
   // Middleware
   app.use(cors());
   app.use(compression());
+  app.set('trust proxy', 1); // trust Back4App/Render proxy
   app.use(helmet({ crossOriginResourcePolicy: false }));
   app.use(express.json({ limit: '1mb' }));
 
