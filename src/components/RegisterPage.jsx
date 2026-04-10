@@ -35,6 +35,7 @@ const RegisterPage = ({ onLogin }) => {
   const [agreed, setAgreed] = useState(false);
   const [policyError, setPolicyError] = useState(false);
   const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [showPolicy, setShowPolicy] = useState(false);
 
   const validate = () => {
     const errs = {};
