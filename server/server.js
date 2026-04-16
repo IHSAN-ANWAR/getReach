@@ -65,6 +65,9 @@ if (cluster.isPrimary) {
   app.use(helmet({ crossOriginResourcePolicy: false }));
   app.use(express.json({ limit: '1mb' }));
 
+  // ── Health check — used by Docker/nginx ──
+  app.get('/health', (req, res) => res.json({ status: 'ok', pid: process.pid }));
+
   // ── Admin login bypass — dedicated route, no rate limiting ──
   app.post('/api/admin-auth', async (req, res) => {
     const { email, password } = req.body;
@@ -87,11 +90,14 @@ if (cluster.isPrimary) {
   app.use('/api/login', loginLimiter);
 
   // MongoDB — connection pool tuned for cluster workers
+  // Pool tuned for horizontal scaling:
+  // 3 containers × 4 CPUs × 20 connections = 240 total Atlas connections
   mongoose.connect(process.env.MONGODB_URI, {
-    maxPoolSize: 10,        // 10 connections per worker
-    minPoolSize: 2,
+    maxPoolSize: 20,
+    minPoolSize: 5,
     serverSelectionTimeoutMS: 5000,
     socketTimeoutMS: 45000,
+    heartbeatFrequencyMS: 10000,
   })
     .then(() => console.log(`🚀 Worker ${process.pid} - Atlas Connected`))
     .catch(err => console.error(`❌ Worker ${process.pid} Database Error:`, err.message));

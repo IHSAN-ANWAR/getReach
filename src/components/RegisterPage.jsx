@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaLeaf, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaUser, FaCheckCircle, FaHeadset, FaGoogle, FaShieldAlt } from 'react-icons/fa';
+import { FaLeaf, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaUser, FaCheckCircle, FaHeadset, FaGoogle, FaShieldAlt, FaMapMarkerAlt } from 'react-icons/fa';
 import axios from 'axios';
 import API_BASE from '../config';
 
@@ -223,7 +223,7 @@ const RegisterPage = ({ onLogin }) => {
                 <label style={{ display: 'block', color: 'rgba(245,240,232,0.6)', fontWeight: 700, marginBottom: 12, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1.5 }}>Full Name</label>
                 <div style={{ position: 'relative' }}>
                   <FaUser style={{ position: 'absolute', left: 18, top: '50%', transform: 'translateY(-50%)', color: fieldErrors.name ? '#ff6b7a' : 'rgba(172,200,162,0.7)' }} />
-                  <input type="text" placeholder="Agency Owner Name" className="form-control shadow-none" value={formData.name}
+                  <input type="text" placeholder="Owner Name" className="form-control shadow-none" value={formData.name}
                     onChange={(e) => { setFormData({...formData, name: e.target.value}); setFieldErrors(p => ({...p, name: ''})); }}
                     style={{ padding: '18px 18px 18px 54px', background: 'rgba(255,255,255,0.04)', border: `2px solid ${fieldErrors.name ? 'rgba(255,107,122,0.5)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 16, color: '#fff', fontSize: 17 }} />
                 </div>
@@ -313,6 +313,15 @@ const RegisterPage = ({ onLogin }) => {
                 <FaHeadset size={14} className="me-2" /> 24/7 Global Onboarding Active
              </div>
           </div>
+          <div className="text-center mt-3" style={{ color: 'rgba(245,240,232,0.25)', fontSize: 12, lineHeight: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <FaMapMarkerAlt size={11} color="rgba(172,200,162,0.5)" /> Islamabad Expressway, Islamabad, Pakistan
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <FaEnvelope size={11} color="rgba(172,200,162,0.5)" />
+              <a href="mailto:getreach.support@gmail.com" style={{ color: 'rgba(172,200,162,0.5)', textDecoration: 'none' }}>getreach.support@gmail.com</a>
+            </div>
+          </div>
         </motion.div>
       </div>
       {/* ── GOOGLE COMING SOON MODAL ── */}
@@ -372,6 +381,15 @@ const RegisterPage = ({ onLogin }) => {
                 ))}
                 <div style={{ color: 'rgba(245,240,232,0.4)', fontSize: 12, marginTop: 8, fontStyle: 'italic' }}>
                   By registering, you confirm you have read and agree to all of the above terms.
+                </div>
+                <div style={{ marginTop: 16, padding: '12px 16px', borderRadius: 12, background: 'rgba(172,200,162,0.05)', border: '1px solid rgba(172,200,162,0.1)', fontSize: 12, color: 'rgba(245,240,232,0.45)', lineHeight: 2 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <FaMapMarkerAlt size={11} color="#ACC8A2" /> Islamabad Expressway, Islamabad, Pakistan
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <FaEnvelope size={11} color="#ACC8A2" />
+                    <a href="mailto:getreach.support@gmail.com" style={{ color: '#ACC8A2', textDecoration: 'none' }}>getreach.support@gmail.com</a>
+                  </div>
                 </div>
               </div>
               <button

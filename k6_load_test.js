@@ -1,13 +1,14 @@
 /**
- * GetReach — Realistic 1K Concurrent User Load Test
+ * GetReach — 10K Concurrent User Load Test
  *
  * Simulates real users navigating the app:
  *   70% → browse services → view their orders (regular users)
  *   20% → login → place order flow
  *   10% → submit / check support ticket
  *
- * Run:  k6 run k6_load_test.js
- * Prod: k6 run -e BASE_URL=https://your-domain.com k6_load_test.js
+ * Run (local):  k6 run k6_load_test.js
+ * Run (prod):   k6 run -e BASE_URL=https://your-domain.com k6_load_test.js
+ * Run (10k):    k6 run -e BASE_URL=https://your-domain.com -e TARGET_VUS=10000 k6_load_test.js
  */
 
 import http from 'k6/http';
@@ -22,32 +23,53 @@ const ordersDur   = new Trend('orders_duration',   true);
 const ticketDur   = new Trend('ticket_duration',   true);
 const totalReqs   = new Counter('total_requests');
 
+// Target VUs — override via env: -e TARGET_VUS=10000
+const TARGET_VUS = parseInt(__ENV.TARGET_VUS || '10000');
+
 export const options = {
   scenarios: {
-    // Ramp to 1000 real users within 15s, hold, then ramp down
+    // ── Gradual ramp to 10k users ──
+    // Ramp slowly to avoid thundering herd; hold at peak; ramp down
     real_users: {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        { duration: '8s',  target: 1000 }, // ramp up
-        { duration: '7s',  target: 1000 }, // hold at 1k
-        { duration: '5s',  target: 0    }, // ramp down
+        { duration: '1m',  target: Math.floor(TARGET_VUS * 0.1)  }, // 10% warmup
+        { duration: '2m',  target: Math.floor(TARGET_VUS * 0.5)  }, // 50% ramp
+        { duration: '3m',  target: TARGET_VUS                    }, // full load
+        { duration: '3m',  target: TARGET_VUS                    }, // hold at peak
+        { duration: '1m',  target: 0                             }, // ramp down
       ],
-      gracefulRampDown: '5s',
+      gracefulRampDown: '30s',
     },
+
+    // ── Spike test — sudden burst (uncomment to enable) ──
+    // spike_test: {
+    //   executor: 'ramping-vus',
+    //   startVUs: 0,
+    //   stages: [
+    //     { duration: '10s', target: TARGET_VUS * 2 }, // 2x spike
+    //     { duration: '1m',  target: TARGET_VUS * 2 }, // hold spike
+    //     { duration: '10s', target: 0              }, // drop
+    //   ],
+    // },
   },
+
   thresholds: {
-    http_req_duration:  ['p(95)<2000', 'p(99)<5000'],
+    http_req_duration:  ['p(95)<3000', 'p(99)<8000'],  // relaxed for 10k
     http_req_failed:    ['rate<0.05'],
     errors:             ['rate<0.05'],
-    login_duration:     ['p(95)<3000'],
-    services_duration:  ['p(95)<800'],   // should be cached
-    orders_duration:    ['p(95)<2000'],
-    ticket_duration:    ['p(95)<2000'],
+    login_duration:     ['p(95)<5000'],
+    services_duration:  ['p(95)<1500'],
+    orders_duration:    ['p(95)<3000'],
+    ticket_duration:    ['p(95)<3000'],
   },
+
+  // Reduce noise in output for large tests
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
 };
 
-const BASE = __ENV.BASE_URL || 'http://localhost:5000';
+const BASE   = __ENV.BASE_URL || 'http://localhost:5000';
 const JSON_H = { headers: { 'Content-Type': 'application/json' } };
 
 // ── Shared login helper ──
@@ -76,8 +98,7 @@ function doLogin(email, password) {
 }
 
 // ─────────────────────────────────────────────
-// SCENARIO A (70% of VUs) — Browse & View Orders
-// Simulates: user opens app → sees services → checks their orders
+// SCENARIO A (70%) — Browse & View Orders
 // ─────────────────────────────────────────────
 function scenarioBrowse() {
   group('browse_services', () => {
@@ -88,13 +109,13 @@ function scenarioBrowse() {
     errorRate.add(!ok);
   });
 
-  sleep(0.3); // user reads the page
+  sleep(0.5 + Math.random() * 0.5); // 0.5–1s think time
 
   group('login_and_view_orders', () => {
     const session = doLogin('demo@getreach.pk', '123456');
     if (!session) return;
 
-    sleep(0.2);
+    sleep(0.3);
 
     const res = http.get(
       `${BASE}/api/orders/user/${session.userId}`,
@@ -107,18 +128,15 @@ function scenarioBrowse() {
 }
 
 // ─────────────────────────────────────────────
-// SCENARIO B (20% of VUs) — Full Order Placement
-// Simulates: login → browse → place order → check balance
+// SCENARIO B (20%) — Full Order Placement
 // ─────────────────────────────────────────────
 function scenarioPlaceOrder() {
   group('place_order_flow', () => {
-    // Step 1: login
     const session = doLogin('demo@getreach.pk', '123456');
     if (!session) return;
 
-    sleep(0.2);
+    sleep(0.3);
 
-    // Step 2: fetch services to pick one
     const svcRes = http.get(`${BASE}/api/orders/services`);
     servicesDur.add(svcRes.timings.duration);
     totalReqs.add(1);
@@ -128,14 +146,12 @@ function scenarioPlaceOrder() {
     try {
       const services = JSON.parse(svcRes.body);
       if (Array.isArray(services) && services.length > 0) {
-        // Pick a random service from the list
         serviceId = services[Math.floor(Math.random() * Math.min(services.length, 10))].service;
       }
     } catch (_) {}
 
-    sleep(0.3); // user picks a service
+    sleep(0.5 + Math.random() * 0.5);
 
-    // Step 3: place order (will likely fail with insufficient balance — that's fine, we're testing load)
     if (serviceId) {
       const orderRes = http.post(
         `${BASE}/api/orders/place-order`,
@@ -153,15 +169,13 @@ function scenarioPlaceOrder() {
         }
       );
       totalReqs.add(1);
-      // 200 = success, 400 = insufficient balance (expected for demo user) — both are valid responses
       check(orderRes, {
         'order responded': (r) => r.status === 200 || r.status === 400,
       });
     }
 
-    sleep(0.2);
+    sleep(0.3);
 
-    // Step 4: view their orders after placing
     const ordersRes = http.get(
       `${BASE}/api/orders/user/${session.userId}`,
       { headers: { Authorization: `Bearer ${session.token}` } }
@@ -173,17 +187,15 @@ function scenarioPlaceOrder() {
 }
 
 // ─────────────────────────────────────────────
-// SCENARIO C (10% of VUs) — Support Ticket
-// Simulates: login → submit ticket → check tickets
+// SCENARIO C (10%) — Support Ticket
 // ─────────────────────────────────────────────
 function scenarioTicket() {
   group('support_ticket_flow', () => {
     const session = doLogin('demo@getreach.pk', '123456');
     if (!session) return;
 
-    sleep(0.2);
+    sleep(0.3);
 
-    // Submit a ticket
     const ticketRes = http.post(
       `${BASE}/api/tickets`,
       JSON.stringify({
@@ -197,9 +209,8 @@ function scenarioTicket() {
     totalReqs.add(1);
     check(ticketRes, { 'ticket created 201': (r) => r.status === 201 });
 
-    sleep(0.2);
+    sleep(0.3);
 
-    // Fetch their tickets
     const fetchRes = http.get(`${BASE}/api/tickets?userId=${session.userId}`);
     ticketDur.add(fetchRes.timings.duration);
     totalReqs.add(1);
@@ -208,23 +219,21 @@ function scenarioTicket() {
 }
 
 // ─────────────────────────────────────────────
-// MAIN — route each VU to a scenario by VU number
+// MAIN — route each VU to a scenario
 // ─────────────────────────────────────────────
 export default function () {
-  const roll = __VU % 10; // 0-9
+  const roll = __VU % 10;
 
   if (roll <= 6) {
-    // 70% — browse + view orders
     scenarioBrowse();
   } else if (roll <= 8) {
-    // 20% — full order placement
     scenarioPlaceOrder();
   } else {
-    // 10% — support ticket
     scenarioTicket();
   }
 
-  sleep(0.1);
+  // Realistic think time between iterations (reduces thundering herd)
+  sleep(1 + Math.random() * 2);
 }
 
 // ─────────────────────────────────────────────
@@ -252,7 +261,7 @@ export function handleSummary(data) {
 
   const box = `
 ╔══════════════════════════════════════════════════════╗
-║       GetReach — 1K Concurrent Users Load Test       ║
+║     GetReach — ${String(TARGET_VUS + ' Concurrent Users Load Test').padEnd(36)}║
 ╠══════════════════════════════════════════════════════╣
 ║  Total Requests    : ${String(reqs).padEnd(30)}║
 ║  Throughput (rps)  : ${String(rps).padEnd(30)}║

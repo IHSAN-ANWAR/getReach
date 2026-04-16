@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { FaLeaf, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaHeadset } from 'react-icons/fa';
+import { FaLeaf, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaHeadset, FaMapMarkerAlt } from 'react-icons/fa';
 import API_BASE from '../config';
 
 const CounterTicker = ({ value, duration = 3, suffix = "" }) => {
@@ -246,8 +246,17 @@ const LoginPage = ({ onLogin }) => {
             )}
           </div>
 
-          <div className="text-center mt-5" style={{ color: 'rgba(245,240,232,0.2)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>
+          <div className="text-center mt-4" style={{ color: 'rgba(245,240,232,0.2)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>
             <FaHeadset size={14} className="me-2" /> 24/7 Premium Support Active
+          </div>
+          <div className="text-center mt-3" style={{ color: 'rgba(245,240,232,0.25)', fontSize: 12, lineHeight: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <FaMapMarkerAlt size={11} color="rgba(172,200,162,0.5)" /> Islamabad Expressway, Islamabad, Pakistan
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <FaEnvelope size={11} color="rgba(172,200,162,0.5)" />
+              <a href="mailto:getreach.support@gmail.com" style={{ color: 'rgba(172,200,162,0.5)', textDecoration: 'none' }}>getreach.support@gmail.com</a>
+            </div>
           </div>
         </motion.div>
       </div>
