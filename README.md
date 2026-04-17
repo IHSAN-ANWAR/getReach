@@ -6,6 +6,20 @@ Full-stack social growth platform for purchasing social media engagement (follow
 
 ## Recent Changes (April 2026)
 
+### Contact Info Added
+- Address and email now visible on Login and Register pages (footer)
+- Privacy & Policy modal in Register page also shows contact info
+- Address: Islamabad Expressway, Islamabad, Pakistan
+- Email: getreach.support@gmail.com
+- Replaced emoji icons (📍✉️) with proper `react-icons` (`FaMapMarkerAlt`, `FaEnvelope`)
+
+### Register Page
+- Name field placeholder changed from "Agency Owner Name" → "Owner Name"
+
+### Admin Login Fix
+- `.env` `ADMIN_PASSWORD` value had quotes causing mismatch — removed quotes
+- Admin credentials: username `getreach_admin`, password `adm!`
+
 ### Deployment Status
 - **Frontend:** Netlify (deploy from `IHSAN-ANWAR/getReach`, build: `npm run build`, publish: `dist`)
 - **Backend:** Back4App (Docker container, `server/` folder, Node 20)
