@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { FaLeaf, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaHeadset, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaLeaf, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaHeadset, FaMapMarkerAlt, FaPhone } from 'react-icons/fa';
 import API_BASE from '../config';
 
 const CounterTicker = ({ value, duration = 3, suffix = "" }) => {
@@ -252,6 +252,10 @@ const LoginPage = ({ onLogin }) => {
           <div className="text-center mt-3" style={{ color: 'rgba(245,240,232,0.25)', fontSize: 12, lineHeight: 2 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <FaMapMarkerAlt size={11} color="rgba(172,200,162,0.5)" /> Islamabad Expressway, Islamabad, Pakistan
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <FaPhone size={11} color="rgba(172,200,162,0.5)" />
+              <a href="tel:+923276508773" style={{ color: 'rgba(172,200,162,0.5)', textDecoration: 'none' }}>+92 327 650 8773</a>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <FaEnvelope size={11} color="rgba(172,200,162,0.5)" />

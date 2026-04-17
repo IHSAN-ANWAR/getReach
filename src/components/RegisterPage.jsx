@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaLeaf, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaUser, FaCheckCircle, FaHeadset, FaGoogle, FaShieldAlt, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaLeaf, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaUser, FaCheckCircle, FaHeadset, FaGoogle, FaShieldAlt, FaMapMarkerAlt, FaPhone } from 'react-icons/fa';
 import axios from 'axios';
 import API_BASE from '../config';
 
@@ -318,6 +318,10 @@ const RegisterPage = ({ onLogin }) => {
               <FaMapMarkerAlt size={11} color="rgba(172,200,162,0.5)" /> Islamabad Expressway, Islamabad, Pakistan
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <FaPhone size={11} color="rgba(172,200,162,0.5)" />
+              <a href="tel:+923276508773" style={{ color: 'rgba(172,200,162,0.5)', textDecoration: 'none' }}>+92 327 650 8773</a>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <FaEnvelope size={11} color="rgba(172,200,162,0.5)" />
               <a href="mailto:getreach.support@gmail.com" style={{ color: 'rgba(172,200,162,0.5)', textDecoration: 'none' }}>getreach.support@gmail.com</a>
             </div>
@@ -385,6 +389,10 @@ const RegisterPage = ({ onLogin }) => {
                 <div style={{ marginTop: 16, padding: '12px 16px', borderRadius: 12, background: 'rgba(172,200,162,0.05)', border: '1px solid rgba(172,200,162,0.1)', fontSize: 12, color: 'rgba(245,240,232,0.45)', lineHeight: 2 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <FaMapMarkerAlt size={11} color="#ACC8A2" /> Islamabad Expressway, Islamabad, Pakistan
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <FaPhone size={11} color="#ACC8A2" />
+                    <a href="tel:+923276508773" style={{ color: '#ACC8A2', textDecoration: 'none' }}>+92 327 650 8773</a>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <FaEnvelope size={11} color="#ACC8A2" />
