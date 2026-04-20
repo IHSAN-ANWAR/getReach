@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaLeaf, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaUser, FaCheckCircle, FaHeadset, FaGoogle, FaShieldAlt, FaMapMarkerAlt, FaPhone } from 'react-icons/fa';
+import {
+  FaLeaf, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaUser, FaCheckCircle,
+  FaHeadset, FaGoogle, FaShieldAlt, FaMapMarkerAlt, FaPhone, FaBolt,
+  FaChartLine, FaWallet, FaSyncAlt, FaCogs, FaTiktok, FaInstagram,
+  FaYoutube, FaFacebook, FaTwitter, FaSnapchatGhost, FaArrowRight, FaStar,
+  FaLockOpen, FaUserShield, FaGlobe
+} from 'react-icons/fa';
 import axios from 'axios';
 import API_BASE from '../config';
 
@@ -78,9 +84,10 @@ const RegisterPage = ({ onLogin }) => {
   };
 
   return (
+    <div style={{ background: 'linear-gradient(145deg, #1A2517 0%, #0d120b 100%)', overflowX: 'hidden' }}>
     <div className="login-viewport" style={{ 
       minHeight: '100vh', display: 'flex', flexDirection: 'row', flexWrap: 'wrap',
-      background: 'linear-gradient(135deg, #1A2517 0%, #0d120b 100%)', 
+      background: 'transparent',
       overflow: 'hidden', position: 'relative'
     }}>
       {/* 🛡️ In-component style to handle placeholder color for better visibility */}
@@ -301,6 +308,37 @@ const RegisterPage = ({ onLogin }) => {
               <button type="submit" disabled={loading} style={{ width: '100%', padding: '20px', borderRadius: 16, border: 'none', background: agreed ? 'linear-gradient(135deg, #ACC8A2 0%, #7aad6e 100%)' : 'rgba(255,255,255,0.08)', color: agreed ? '#1A2517' : 'rgba(245,240,232,0.3)', fontWeight: 900, fontSize: 18, boxShadow: agreed ? '0 10px 25px rgba(172,200,162,0.2)' : 'none', cursor: agreed ? 'pointer' : 'not-allowed', transition: 'all 0.2s' }}>
                 Apply for Access
               </button>
+
+              {/* ── TRUST LINES ── */}
+              <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 16 }}>
+                {[
+                  { icon: <FaShieldAlt size={11} />, text: 'SSL Encrypted' },
+                  { icon: <FaUserShield size={11} />, text: 'Data Protected' },
+                  { icon: <FaBolt size={11} />, text: 'Instant Access' },
+                  { icon: <FaGlobe size={11} />, text: '99.9% Uptime' },
+                ].map((t, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'rgba(172,200,162,0.55)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+                    {t.icon} {t.text}
+                  </div>
+                ))}
+              </div>
+
+              {/* ── SOCIAL PROOF ── */}
+              <div style={{ marginTop: 18, padding: '12px 16px', borderRadius: 14, background: 'rgba(172,200,162,0.04)', border: '1px solid rgba(172,200,162,0.1)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ display: 'flex', gap: -4 }}>
+                  {['A','B','C','D'].map((l, i) => (
+                    <div key={i} style={{ width: 26, height: 26, borderRadius: '50%', background: `hsl(${100 + i * 20}, 40%, 45%)`, border: '2px solid #1A2517', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', marginLeft: i > 0 ? -8 : 0 }}>{l}</div>
+                  ))}
+                </div>
+                <div>
+                  <div style={{ display: 'flex', gap: 2, marginBottom: 2 }}>
+                    {[1,2,3,4,5].map(s => <FaStar key={s} size={9} color="#ACC8A2" />)}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'rgba(245,240,232,0.45)', fontWeight: 600 }}>
+                    Trusted by <span style={{ color: '#ACC8A2', fontWeight: 800 }}>54,000+</span> marketing partners
+                  </div>
+                </div>
+              </div>
             </form>
 
             <div className="text-center mt-5">
@@ -411,7 +449,153 @@ const RegisterPage = ({ onLogin }) => {
         )}
       </AnimatePresence>
     </div>
+    <AboutSection />
+    </div>
   );
 };
+
+/* ─────────────────────────────────────────────
+   ABOUT US — full-width section below register
+───────────────────────────────────────────── */
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 40 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true },
+  transition: { duration: 0.75, delay, ease: 'easeOut' },
+});
+const fadeLeft = (delay = 0) => ({
+  initial: { opacity: 0, x: -50 },
+  whileInView: { opacity: 1, x: 0 },
+  viewport: { once: true },
+  transition: { duration: 0.75, delay, ease: 'easeOut' },
+});
+const fadeRight = (delay = 0) => ({
+  initial: { opacity: 0, x: 50 },
+  whileInView: { opacity: 1, x: 0 },
+  viewport: { once: true },
+  transition: { duration: 0.75, delay, ease: 'easeOut' },
+});
+
+const CAPABILITIES = [
+  { icon: <FaBolt size={20} />, title: 'Instant Order Processing', desc: 'Place an order and watch it go live in seconds. Our API pipeline runs 24/7 with zero downtime.' },
+  { icon: <FaChartLine size={20} />, title: 'Real-Time Tracking', desc: 'Every order has a live status — pending, processing, completed. No guessing, no waiting in the dark.' },
+  { icon: <FaWallet size={20} />, title: 'Local Payments', desc: 'EasyPaisa & JazzCash built-in. No foreign cards, no conversion headaches. Pay like a Pakistani.' },
+  { icon: <FaShieldAlt size={20} />, title: 'Secure by Design', desc: 'JWT auth, bcrypt passwords, encrypted MongoDB Atlas storage. Your data never leaves our control.' },
+  { icon: <FaSyncAlt size={20} />, title: 'Auto-Retry System', desc: 'Failed orders? Our system retries automatically. You never lose a rupee to a dropped connection.' },
+  { icon: <FaCogs size={20} />, title: 'Admin Intelligence', desc: 'Full admin panel — manage users, approve payments, set custom pricing, monitor revenue in real time.' },
+];
+
+const PLATFORMS = [
+  { label: 'TikTok',    icon: <FaTiktok size={16} /> },
+  { label: 'Instagram', icon: <FaInstagram size={16} /> },
+  { label: 'YouTube',   icon: <FaYoutube size={16} /> },
+  { label: 'Facebook',  icon: <FaFacebook size={16} /> },
+  { label: 'Twitter',   icon: <FaTwitter size={16} /> },
+  { label: 'Snapchat',  icon: <FaSnapchatGhost size={16} /> },
+];
+
+const AboutSection = () => (
+  <div style={{ width: '100%', background: '#080e07', borderTop: '1px solid rgba(172,200,162,0.07)', fontFamily: 'Poppins, sans-serif' }}>
+    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '100px 24px 60px', textAlign: 'center' }}>
+      <motion.div {...fadeUp(0)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 18px', borderRadius: 100, background: 'rgba(172,200,162,0.07)', border: '1px solid rgba(172,200,162,0.15)', marginBottom: 32 }}>
+        <FaLeaf color="#ACC8A2" size={12} />
+        <span style={{ fontSize: 12, fontWeight: 700, color: '#ACC8A2', letterSpacing: 1.5, textTransform: 'uppercase' }}>About GetReach</span>
+      </motion.div>
+      <motion.h2 {...fadeUp(0.1)} style={{ fontSize: 'clamp(32px, 5.5vw, 68px)', fontWeight: 900, lineHeight: 1.08, color: '#F5F0E8', marginBottom: 28, letterSpacing: '-1.5px' }}>
+        One platform.<br /><span style={{ color: '#ACC8A2' }}>Every growth type. Every platform.</span>
+      </motion.h2>
+      <motion.p {...fadeUp(0.2)} style={{ fontSize: 18, color: 'rgba(245,240,232,0.45)', maxWidth: 620, margin: '0 auto 56px', lineHeight: 1.85 }}>
+        GetReach is Pakistan's most reliable social media growth infrastructure — built for agencies, freelancers, and brands who need results, not promises.
+      </motion.p>
+      <motion.div {...fadeUp(0.3)} style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 2 }}>
+        {[{ n: '1.2M+', l: 'Orders Delivered' }, { n: '54K+', l: 'Active Partners' }, { n: '6', l: 'Platforms Covered' }, { n: '99.9%', l: 'Uptime' }].map((s, i) => (
+          <div key={i} style={{ padding: '24px 36px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.05)' : 'none', textAlign: 'center', minWidth: 140 }}>
+            <div style={{ fontSize: 36, fontWeight: 900, color: '#ACC8A2', letterSpacing: '-1px' }}>{s.n}</div>
+            <div style={{ fontSize: 11, color: 'rgba(245,240,232,0.35)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, marginTop: 6 }}>{s.l}</div>
+          </div>
+        ))}
+      </motion.div>
+    </div>
+    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '0 24px' }}>
+      <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(172,200,162,0.15), transparent)' }} />
+    </div>
+    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '80px 24px' }}>
+      <div style={{ marginBottom: 56, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
+        <motion.div {...fadeLeft(0)}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#ACC8A2', letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 12 }}>What We Do</div>
+          <h3 style={{ fontSize: 'clamp(26px, 4vw, 44px)', fontWeight: 900, color: '#F5F0E8', margin: 0, letterSpacing: '-0.5px' }}>Everything your agency needs.<br />Nothing it doesn't.</h3>
+        </motion.div>
+        <motion.p {...fadeRight(0.1)} style={{ color: 'rgba(245,240,232,0.4)', fontSize: 14, maxWidth: 320, lineHeight: 1.8, margin: 0 }}>
+          One platform. Every tool. Built to run itself so you can focus on clients, not infrastructure.
+        </motion.p>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+        {CAPABILITIES.map((c, i) => (
+          <motion.div key={i}
+            initial={{ opacity: 0, x: i % 2 === 0 ? -40 : 40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+            transition={{ duration: 0.65, delay: i * 0.07, ease: 'easeOut' }}
+            whileHover={{ y: -4, borderColor: 'rgba(172,200,162,0.25)' }}
+            style={{ padding: '28px 26px', borderRadius: 18, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', transition: 'border-color 0.25s, transform 0.25s', cursor: 'default' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(172,200,162,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ACC8A2', marginBottom: 16 }}>{c.icon}</div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: '#F5F0E8', marginBottom: 8 }}>{c.title}</div>
+            <div style={{ color: 'rgba(245,240,232,0.45)', fontSize: 13, lineHeight: 1.75 }}>{c.desc}</div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '0 24px 80px' }}>
+      <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(172,200,162,0.1), transparent)', marginBottom: 60 }} />
+      <motion.div {...fadeLeft(0)} style={{ marginBottom: 28 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(245,240,232,0.3)', letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 12 }}>Growth Types & Platforms</div>
+        <h3 style={{ fontSize: 'clamp(22px, 3.5vw, 38px)', fontWeight: 900, color: '#F5F0E8', margin: 0 }}>
+          Followers. Views. Likes. Comments.<br /><span style={{ color: '#ACC8A2' }}>All of it. Everywhere.</span>
+        </h3>
+      </motion.div>
+      <motion.div {...fadeRight(0.15)} style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+        {PLATFORMS.map((p, i) => (
+          <motion.div key={i} whileHover={{ scale: 1.06, borderColor: 'rgba(172,200,162,0.45)', background: 'rgba(172,200,162,0.08)' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 22px', borderRadius: 100, border: '1px solid rgba(172,200,162,0.14)', background: 'rgba(172,200,162,0.04)', color: 'rgba(245,240,232,0.7)', fontSize: 13, fontWeight: 700, cursor: 'default', transition: 'all 0.2s' }}>
+            <span style={{ color: '#ACC8A2' }}>{p.icon}</span> {p.label}
+          </motion.div>
+        ))}
+      </motion.div>
+    </div>
+    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '0 24px 80px' }}>
+      <motion.div {...fadeUp(0)} style={{ background: 'linear-gradient(135deg, rgba(172,200,162,0.05) 0%, rgba(122,173,110,0.03) 100%)', border: '1px solid rgba(172,200,162,0.1)', borderRadius: 28, padding: 'clamp(32px, 5vw, 60px)', textAlign: 'center' }}>
+        <motion.h3 {...fadeLeft(0.1)} style={{ fontSize: 'clamp(22px, 4vw, 42px)', fontWeight: 900, color: '#F5F0E8', lineHeight: 1.2, marginBottom: 20, letterSpacing: '-0.5px' }}>
+          "While others are still setting up,<br /><span style={{ color: '#ACC8A2' }}>your orders are already live."</span>
+        </motion.h3>
+        <motion.p {...fadeRight(0.2)} style={{ color: 'rgba(245,240,232,0.4)', fontSize: 15, maxWidth: 500, margin: '0 auto 36px', lineHeight: 1.8 }}>
+          GetReach is engineered for speed. From the moment you place an order to the second it hits the platform — we move fast, so you look good.
+        </motion.p>
+        <motion.div {...fadeUp(0.3)}>
+          <Link to="/register" style={{ textDecoration: 'none' }}>
+            <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
+              style={{ padding: '15px 34px', borderRadius: 14, border: 'none', background: 'linear-gradient(135deg, #ACC8A2, #7aad6e)', color: '#1A2517', fontWeight: 900, fontSize: 15, cursor: 'pointer', boxShadow: '0 8px 28px rgba(172,200,162,0.2)', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+              Start Growing Today <FaArrowRight size={13} />
+            </motion.button>
+          </Link>
+        </motion.div>
+      </motion.div>
+    </div>
+    <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)', padding: '32px 24px', textAlign: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 24, marginBottom: 16 }}>
+        {[
+          { icon: <FaMapMarkerAlt size={12} />, text: 'Islamabad Expressway, Pakistan' },
+          { icon: <FaPhone size={12} />, text: '+92 327 650 8773', href: 'tel:+923276508773' },
+          { icon: <FaEnvelope size={12} />, text: 'getreach.support@gmail.com', href: 'mailto:getreach.support@gmail.com' },
+        ].map((item, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, color: 'rgba(245,240,232,0.3)', fontSize: 12 }}>
+            <span style={{ color: 'rgba(172,200,162,0.5)' }}>{item.icon}</span>
+            {item.href ? <a href={item.href} style={{ color: 'rgba(245,240,232,0.3)', textDecoration: 'none' }}>{item.text}</a> : item.text}
+          </div>
+        ))}
+      </div>
+      <div style={{ color: 'rgba(245,240,232,0.15)', fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+        © 2026 GetReach — All Rights Reserved
+      </div>
+    </div>
+  </div>
+);
 
 export default RegisterPage;
