@@ -21,13 +21,12 @@ import callPakfollowersAPI from './utils/pakfollowers.js';
 
 // ── Single-process mode (Render free tier: 512MB RAM, 0.1 CPU)
 // Cluster mode disabled — forking workers on 0.1 CPU causes OOM crashes.
-// Enable cluster only on paid instances with 1+ CPU cores.
-{
-  const app = express();
-  const PORT = process.env.PORT || 5000;
 
-  // Redis disabled on free tier (512MB RAM — not enough for Redis + Node + MongoDB)
-  const redis = null;
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Redis disabled on free tier (512MB RAM — not enough for Redis + Node + MongoDB)
+const redis = null;
 
   // Middleware
   app.use(cors());
@@ -60,9 +59,7 @@ import callPakfollowersAPI from './utils/pakfollowers.js';
   });
   app.use('/api/login', loginLimiter);
 
-  // MongoDB — connection pool tuned for cluster workers
-  // Pool tuned for horizontal scaling:
-  // 3 containers × 4 CPUs × 20 connections = 240 total Atlas connections
+  // MongoDB — small pool for Render free tier (512MB RAM)
   mongoose.connect(process.env.MONGODB_URI, {
     maxPoolSize: 5,   // free tier: 512MB RAM — keep pool small
     minPoolSize: 1,
@@ -643,4 +640,3 @@ import callPakfollowersAPI from './utils/pakfollowers.js';
   app.listen(PORT, () => {
     console.log(`🌐 GetReach server running on port ${PORT} (pid ${process.pid})`);
   });
-}
