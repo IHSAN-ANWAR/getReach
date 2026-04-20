@@ -648,6 +648,27 @@ if (cluster.isPrimary) {
   checkApiBalance();
   setInterval(checkApiBalance, 60 * 60 * 1000);
 
+  // ── Keep-Alive Self-Ping — prevents Render free tier from sleeping ──
+  // Render spins down after 15 min of inactivity. This pings /health every 14 min.
+  // Set RENDER_SERVICE_URL in env (e.g. https://your-app.onrender.com)
+  const PING_URL = process.env.RENDER_SERVICE_URL
+    ? `${process.env.RENDER_SERVICE_URL}/health`
+    : null;
+
+  if (PING_URL) {
+    const pingServer = async () => {
+      try {
+        const res = await fetch(PING_URL, { signal: AbortSignal.timeout(10000) });
+        console.log(`🏓 Keep-alive ping → ${PING_URL} [${res.status}]`);
+      } catch (err) {
+        console.warn(`⚠️  Keep-alive ping failed: ${err.message}`);
+      }
+    };
+    // Ping every 14 minutes (Render sleeps after 15 min of inactivity)
+    setInterval(pingServer, 14 * 60 * 1000);
+    console.log(`🏓 Keep-alive ping enabled → ${PING_URL} (every 14 min)`);
+  }
+
   app.listen(PORT, () => {
     console.log(`🌐 Cluster Worker ${process.pid} listening on Port ${PORT}`);
   });

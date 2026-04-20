@@ -1,6 +1,413 @@
 # GetReach — Social Growth Platform
 
-Full-stack social growth platform for purchasing social media engagement (followers, views, likes) across TikTok, Instagram, YouTube, Facebook, and Twitter. Built for real production load with Node.js clustering, Redis caching, and rate limiting.
+Full-stack social media growth platform for purchasing engagement (followers, views, likes) across TikTok, Instagram, YouTube, Facebook, and Twitter. Built for real production load with Node.js clustering, Redis caching, and rate limiting.
+
+---
+
+## Recent Changes (April 2026)
+
+### Services Preview on Login Page
+- Public services catalog now visible on the login/landing page — users can browse all services before creating an account
+- Platform filter tabs (All, TikTok, Instagram, YouTube, Facebook, Twitter) + search bar
+- Clicking any service opens a detail modal (price, min/max, category)
+- Modal CTA: "Create Account to Order" → redirects to `/register`
+
+### Register Page Improvements
+- Trust badges added below submit button: SSL Encrypted, Data Protected, Instant Access, 99.9% Uptime
+- Social proof bar: avatar stack + 5-star rating + "Trusted by 54,000+ marketing partners"
+- Full About/Info section added below register form (same as login page)
+
+### Keep-Alive Ping (Render Free Tier)
+- Server self-pings `/health` every **14 minutes** to prevent Render from sleeping after 15 min of inactivity
+- Set `RENDER_SERVICE_URL=https://your-app.onrender.com` in environment variables to enable
+- Logs each ping with status code: `🏓 Keep-alive ping → [url] [200]`
+- Uses `AbortSignal.timeout(10000)` — fails gracefully if server is slow
+
+### Contact Info Added
+- Address and email visible on Login and Register pages (footer)
+- Privacy & Policy modal in Register page also shows contact info
+- Address: Islamabad Expressway, Islamabad, Pakistan
+- Email: getreach.support@gmail.com
+
+### Deployment Status
+- **Frontend:** Netlify (deploy from `IHSAN-ANWAR/getReach`, build: `npm run build`, publish: `dist`)
+- **Backend:** Render (or Back4App) — Docker container, `server/` folder, Node 20
+- **Database:** MongoDB Atlas (already connected)
+- `public/_redirects` added for Netlify SPA routing
+- `vercel.json` added for Vercel SPA routing (if switching)
+
+### Backend Environment Variables
+Set these in Render/Back4App → Settings → Environment Variables:
+```
+MONGODB_URI=
+PORT=5000
+JWT_SECRET=
+PAKFOLLOWERS_API_URL=
+PAKFOLLOWERS_API_KEY=
+MARKUP_MULTIPLIER=2
+ADMIN_USERNAME=getreach_admin
+ADMIN_PASSWORD=
+EMAIL_USER=
+EMAIL_PASS=
+ADMIN_ALERT_EMAIL=
+FRONTEND_URL=
+RENDER_SERVICE_URL=https://your-app.onrender.com   ← enables keep-alive ping
+```
+
+### Frontend Environment Variable (Netlify)
+```
+VITE_API_URL = https://<your-backend-url>
+```
+
+---
+
+## Tech Stack — Full Library Reference
+
+### Backend
+| Library | Version | Purpose |
+|---|---|---|
+| `express` | v5 | HTTP server & REST API routing |
+| `mongoose` | v9 | MongoDB ODM — schemas, models, queries |
+| `ioredis` | v5 | Redis client — login cache (5-min TTL) |
+| `jsonwebtoken` | v9 | JWT generation & verification for auth |
+| `bcryptjs` | v3 | Password hashing (rounds: 10) |
+| `helmet` | v8 | Security HTTP headers |
+| `compression` | v1 | Gzip response compression |
+| `express-rate-limit` | v6 | Auth route throttling |
+| `nodemailer` | v8 | Password reset + low-balance alert emails |
+| `cors` | v2 | Cross-origin request handling |
+| `dotenv` | v17 | Environment variable loading |
+| `cluster` (built-in) | Node.js | Multi-core process forking |
+| `os` (built-in) | Node.js | CPU core detection |
+
+### Frontend
+| Library | Version | Purpose |
+|---|---|---|
+| `react` | v19 | UI component framework |
+| `react-dom` | v19 | DOM rendering |
+| `react-router-dom` | v7 | Client-side routing |
+| `framer-motion` | v12 | Page & component animations |
+| `recharts` | v2 | Admin revenue & stats charts |
+| `react-countup` | v6 | Animated number counters |
+| `react-icons` | v5 | Icon library (FontAwesome set) |
+| `bootstrap` | v5 | Grid system & utility classes |
+| `axios` | v1 | HTTP client for API calls |
+| `canvas-confetti` | v1 | Confetti animation on order success |
+
+### Dev & Build
+| Tool | Purpose |
+|---|---|
+| `vite` v8 | Frontend bundler & dev server |
+| `@vitejs/plugin-react` | React fast-refresh for Vite |
+| `eslint` v9 | Code linting |
+| `k6` | Load testing (1k concurrent users) |
+
+### Infrastructure
+| Service | Purpose |
+|---|---|
+| MongoDB Atlas | Cloud database (users, orders, tickets, fund requests, service overrides) |
+| Redis | Login session cache — reduces DB hits on repeated logins |
+| Node.js Cluster | One worker process per CPU core — OS round-robin load balancing |
+| Gmail (Nodemailer) | Password reset emails + low API balance alerts |
+| Keep-Alive Ping | Self-ping every 14 min to prevent Render free tier sleep |
+
+---
+
+## System Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                        CLIENT (Browser)                          │
+│                                                                  │
+│   User Dashboard                  Admin Panel                    │
+│   ├── New Order                   ├── Dashboard (stats/charts)   │
+│   ├── Services (browse)           ├── User Base                  │
+│   ├── My Orders                   ├── Services Manager           │
+│   ├── Add Funds                   ├── Fund Requests              │
+│   ├── Support Tickets             ├── Support CRM                │
+│   ├── FAQ                         ├── Revenue                    │
+│   └── Profile                     └── Settings                   │
+└──────────────────────┬───────────────────────────────────────────┘
+                       │  HTTP REST  :5000
+                       ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                  Node.js Cluster  (server.js)                    │
+│                                                                  │
+│  ┌─────────────┐   forks 1 worker per CPU core                   │
+│  │   PRIMARY   │──────────────────────────────────────────────┐  │
+│  │   PROCESS   │                                              │  │
+│  └─────────────┘                                              │  │
+│        │ auto-restarts crashed workers                        │  │
+│        ▼                                                      ▼  │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐          │
+│  │ Worker 1 │  │ Worker 2 │  │ Worker 3 │  │ Worker N │          │
+│  │ :5000    │  │ :5000    │  │ :5000    │  │ :5000    │          │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘          │
+│       └─────────────┴─────────────┴──────────────┘               │
+│                  OS Round-Robin Load Balancing                   │
+│                                                                  │
+│  Middleware stack per worker:                                    │
+│  cors → helmet → compression → express.json → rate-limit         │
+│                                                                  │
+│  Background tasks (per worker):                                  │
+│  ├── API balance check  (every 1 hour)                           │
+│  └── Keep-alive ping    (every 14 min → /health)                 │
+└──────────┬───────────────────────────┬───────────────────────────┘
+           │                           │
+    ┌──────▼──────┐             ┌──────▼──────┐
+    │   MongoDB   │             │    Redis    │
+    │   Atlas     │             │  :6379      │
+    │             │             │             │
+    │ collections:│             │ login cache │
+    │ users       │             │ key: user:  │
+    │ orders      │             │   {email}   │
+    │ tickets     │             │ TTL: 5 min  │
+    │ fundrequests│             └─────────────┘
+    │ serviceoverrides          (graceful fallback
+    │             │              if unavailable)
+    └─────────────┘
+           │
+    ┌──────▼──────┐
+    │  Third-Party│
+    │  Growth API │
+    │             │
+    │ action:     │
+    │  services   │
+    │  add        │
+    │  status     │
+    │  balance    │
+    └─────────────┘
+```
+
+---
+
+## Keep-Alive — Render Free Tier
+
+Render's free tier spins down after **15 minutes** of inactivity. The server pings itself every 14 minutes to stay awake.
+
+```
+setInterval → GET /health (every 14 min)
+      │
+      ├── Response 200 → logs "🏓 Keep-alive ping → [url] [200]"
+      └── Timeout/fail → logs warning, retries next interval
+
+Requires: RENDER_SERVICE_URL=https://your-app.onrender.com
+```
+
+**Note:** On Render free tier, the first request after a cold start may take 30–60 seconds. With keep-alive enabled, the server stays warm and responds instantly.
+
+---
+
+## Data Flow Diagrams
+
+### 1. Service Fetch & Display Flow
+
+```
+Third-Party Growth API
+        │
+        │  GET action=services
+        │  (raw list: serviceId, name, rate USD, min, max)
+        ▼
+  orders.js route
+        │
+        ├── Check in-process cache (10-min TTL)
+        │   └── If fresh → return cached immediately
+        │
+        ├── Fetch ServiceOverride from MongoDB
+        │   (admin customizations: name, rate, hidden, category)
+        │
+        ├── Merge raw API data + overrides
+        │   raw.rate × MARKUP_MULTIPLIER × 315 = PKR display rate
+        │   override.rate wins if set by admin
+        │
+        ├── Filter out hidden services
+        │
+        └── Cache result → return to frontend
+                │
+                ▼
+        ServicesPage.jsx / OrderForm.jsx / LoginPage.jsx (public preview)
+        (user sees: name, category, PKR rate, min/max qty)
+```
+
+### 2. Order Placement Flow
+
+```
+User (OrderForm.jsx)
+  fills: service, link, quantity
+        │
+        │  POST /api/orders/place-order
+        ▼
+  Server (orders.js)
+        │
+        ├── Find user → check balance (PKR)
+        ├── Get service from cache → calculate charge
+        ├── balance < charge? → 400 Insufficient balance
+        ├── Call Third-Party Growth API (action=add)
+        ├── user.balance -= charge → save to MongoDB
+        ├── Create Order document in MongoDB
+        └── Return { success, order, newBalance }
+
+Background sync (every 2 min):
+  Order.find({ status: active }) → action=status → update MongoDB
+```
+
+### 3. Payment / Fund Deposit Flow
+
+```
+User → POST /api/fund-requests { method, amount, tid }
+        │
+        ├── Validate: amount ≥ 50, TID not duplicate
+        └── Save FundRequest { status: "pending" }
+
+Admin → PATCH /api/fund-requests/:id { status: "approved"/"rejected" }
+        │
+        └── If approved: User.balance += amount
+```
+
+### 4. Authentication Flow
+
+```
+POST /api/login { email, password }
+        │
+        ├── Admin bypass (from .env) → JWT (no DB hit)
+        ├── Redis cache check → hit: use cached user
+        ├── MongoDB fallback → cache result (5 min TTL)
+        ├── bcrypt.compare → wrong? → 401
+        └── jwt.sign({ id, role }, JWT_SECRET, 1d) → return token
+```
+
+---
+
+## Component Architecture
+
+```
+App.jsx  (auth state, routing)
+  │
+  ├── /admin/*  →  AdminLayout.jsx
+  │     └── AdminDashboard, Users, Services, FundRequests,
+  │         Tickets, Revenue, Settings, Profile
+  │
+  └── /*  →  DashboardLayout.jsx
+        └── NewOrder, Services, MyOrders, AddFunds,
+            Tickets, Profile, Refill, FAQ
+```
+
+---
+
+## Project Structure
+
+```
+getreach/
+├── server/
+│   ├── server.js              # Cluster entry, auth, tickets, fund requests, keep-alive
+│   ├── .env                   # Environment config (never commit)
+│   ├── models/
+│   │   ├── Order.js
+│   │   ├── FundRequest.js
+│   │   └── ServiceOverride.js
+│   ├── routes/
+│   │   └── orders.js
+│   └── utils/
+│       └── pakfollowers.js
+│
+├── src/
+│   ├── App.jsx
+│   ├── components/
+│   │   ├── LoginPage.jsx      # Includes public services preview section
+│   │   ├── RegisterPage.jsx   # Trust badges + social proof + About section
+│   │   └── ...
+│   ├── pages/
+│   └── admin/
+│
+├── k6_load_test.js
+├── vite.config.js
+└── package.json
+```
+
+---
+
+## Pricing Model
+
+```
+Growth API raw rate (USD per 1000 units)
+        × MARKUP_MULTIPLIER  (env var, default: 2 = 100% profit)
+        × 315                (USD → PKR conversion rate)
+        = Display rate shown to user (PKR per 1000)
+
+User charge  = (display_rate / 1000) × quantity   [PKR]
+API cost     = (raw_rate / 1000) × quantity        [USD]
+Your profit  = user_charge − (api_cost × 315)      [PKR]
+```
+
+---
+
+## Environment Variables
+
+```env
+MONGODB_URI=            # MongoDB Atlas connection string
+PORT=5000
+JWT_SECRET=             # JWT signing secret
+PAKFOLLOWERS_API_URL=   # Growth API endpoint
+PAKFOLLOWERS_API_KEY=   # Growth API key
+MARKUP_MULTIPLIER=2     # Price markup (2 = 100% profit)
+REDIS_URL=              # redis://127.0.0.1:6379 (optional)
+EMAIL_USER=             # Gmail address
+EMAIL_PASS=             # Gmail App Password (16 chars)
+ADMIN_ALERT_EMAIL=      # Receives low API balance alerts
+FRONTEND_URL=           # Used in reset email links
+ADMIN_USERNAME=         # Admin login username
+ADMIN_PASSWORD=         # Admin login password
+RENDER_SERVICE_URL=     # https://your-app.onrender.com (enables keep-alive ping)
+```
+
+---
+
+## Running Locally
+
+```bash
+npm install
+
+# Terminal 1 — backend
+node server/server.js
+
+# Terminal 2 — frontend
+npm run dev
+```
+
+Frontend: `http://localhost:5173`  
+API: `http://localhost:5000`
+
+Redis is optional — server falls back to MongoDB-only if unavailable.
+
+---
+
+## Scalability
+
+The app is built for scale:
+- Node.js cluster (1 worker per CPU core, auto-restart on crash)
+- Redis login cache (~80% fewer DB hits on repeated logins)
+- MongoDB connection pooling (20 connections per worker)
+- Gzip compression + Helmet security headers
+- Nginx load balancer with `least_conn` routing
+
+| Infrastructure | Concurrent Users |
+|---|---|
+| Single server, 4 cores | ~500 |
+| 3× instances + Nginx | ~3,000 |
+| 10× instances + managed Redis + Atlas M30 | ~20,000 |
+| 30× instances + CDN + Atlas M50+ | ~100,000 |
+
+---
+
+## Admin Access
+
+```
+URL:       /admin/login
+Username:  ADMIN_USERNAME (from .env)
+Password:  ADMIN_PASSWORD (from .env)
+```
+
+Brute-force protection: max 10 attempts per IP per 15 minutes.
 
 ---
 
