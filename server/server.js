@@ -9,54 +9,25 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import cluster from 'cluster';
-import os from 'os';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import compression from 'compression';
 import helmet from 'helmet';
 import bcrypt from 'bcryptjs';
-import Redis from 'ioredis';
 import orderRoutes from './routes/orders.js';
 import FundRequest from './models/FundRequest.js';
 import callPakfollowersAPI from './utils/pakfollowers.js';
 
-const numCPUs = os.cpus().length;
-
-if (cluster.isPrimary) {
-  console.log(`🌐 Primary Cluster ${process.pid} is running`);
-
-  // Fork workers for each CPU core
-  for (let i = 0; i < numCPUs; i++) {
-    cluster.fork();
-  }
-
-  cluster.on('exit', (worker, code, signal) => {
-    console.log(`❌ Worker ${worker.process.pid} died. Auto-restarting...`);
-    cluster.fork();
-  });
-
-} else {
+// ── Single-process mode (Render free tier: 512MB RAM, 0.1 CPU)
+// Cluster mode disabled — forking workers on 0.1 CPU causes OOM crashes.
+// Enable cluster only on paid instances with 1+ CPU cores.
+{
   const app = express();
   const PORT = process.env.PORT || 5000;
 
-  // Redis client — falls back gracefully if Redis not available
-  let redis = null;
-  try {
-    redis = new Redis(process.env.REDIS_URL || 'redis://127.0.0.1:6379', {
-      lazyConnect: true,
-      connectTimeout: 3000,
-      maxRetriesPerRequest: 1,
-      enableOfflineQueue: false,
-    });
-    redis.on('error', () => { redis = null; }); // disable if Redis unavailable
-    await redis.connect().catch(() => { redis = null; });
-    if (redis) console.log(`✅ Worker ${process.pid} - Redis Connected`);
-  } catch {
-    redis = null;
-    console.log(`⚠️  Worker ${process.pid} - Redis unavailable, using DB only`);
-  }
+  // Redis disabled on free tier (512MB RAM — not enough for Redis + Node + MongoDB)
+  const redis = null;
 
   // Middleware
   app.use(cors());
@@ -93,14 +64,14 @@ if (cluster.isPrimary) {
   // Pool tuned for horizontal scaling:
   // 3 containers × 4 CPUs × 20 connections = 240 total Atlas connections
   mongoose.connect(process.env.MONGODB_URI, {
-    maxPoolSize: 20,
-    minPoolSize: 5,
+    maxPoolSize: 5,   // free tier: 512MB RAM — keep pool small
+    minPoolSize: 1,
     serverSelectionTimeoutMS: 5000,
     socketTimeoutMS: 45000,
     heartbeatFrequencyMS: 10000,
   })
-    .then(() => console.log(`🚀 Worker ${process.pid} - Atlas Connected`))
-    .catch(err => console.error(`❌ Worker ${process.pid} Database Error:`, err.message));
+    .then(() => console.log(`🚀 Process ${process.pid} - Atlas Connected`))
+    .catch(err => console.error(`❌ Database Error:`, err.message));
 
   // ── USER SCHEMA ──
   const userSchema = new mongoose.Schema({
@@ -670,6 +641,6 @@ if (cluster.isPrimary) {
   }
 
   app.listen(PORT, () => {
-    console.log(`🌐 Cluster Worker ${process.pid} listening on Port ${PORT}`);
+    console.log(`🌐 GetReach server running on port ${PORT} (pid ${process.pid})`);
   });
 }
