@@ -21,26 +21,14 @@ require_once __DIR__ . '/routes/tickets.php';
 require_once __DIR__ . '/routes/admin.php';
 
 // ── CORS ─────────────────────────────────────────────────────────────────────
-$allowedOrigins = array_filter(array_map('trim', explode(',',
-    $_ENV['FRONTEND_URL'] ?? 'http://localhost:5173'
-)));
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-
-if (in_array($origin, $allowedOrigins, true) || empty($allowedOrigins)) {
-    header("Access-Control-Allow-Origin: $origin");
-} else {
-    header('Access-Control-Allow-Origin: ' . ($allowedOrigins[0] ?? ''));
-}
+header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Auth-Token');
 header('Content-Type: application/json');
-
-// Remove PHP fingerprint
 header_remove('X-Powered-By');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(204);
+    http_response_code(200);
     exit;
 }
 
