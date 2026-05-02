@@ -1,86 +1,20 @@
 # GetReach — Social Growth Platform
 
-Full-stack social media growth platform for purchasing engagement (followers, views, likes) across TikTok, Instagram, YouTube, Facebook, and Twitter. Built for real production load with Node.js clustering, Redis caching, and rate limiting.
+Full-stack social media growth platform for purchasing engagement (followers, views, likes) across TikTok, Instagram, YouTube, Facebook, and Twitter.
 
 ---
 
-## Recent Changes (April 2026)
+## Tech Stack
 
-### Services Preview on Login Page
-- Public services catalog now visible on the login/landing page — users can browse all services before creating an account
-- Platform filter tabs (All, TikTok, Instagram, YouTube, Facebook, Twitter) + search bar
-- Clicking any service opens a detail modal (price, min/max, category)
-- Modal CTA: "Create Account to Order" → redirects to `/register`
-
-### Register Page Improvements
-- Trust badges added below submit button: SSL Encrypted, Data Protected, Instant Access, 99.9% Uptime
-- Social proof bar: avatar stack + 5-star rating + "Trusted by 54,000+ marketing partners"
-- Full About/Info section added below register form (same as login page)
-
-### Keep-Alive Ping (Render Free Tier)
-- Server self-pings `/health` every **14 minutes** to prevent Render from sleeping after 15 min of inactivity
-- Set `RENDER_SERVICE_URL=https://your-app.onrender.com` in environment variables to enable
-- Logs each ping with status code: `🏓 Keep-alive ping → [url] [200]`
-- Uses `AbortSignal.timeout(10000)` — fails gracefully if server is slow
-
-### Contact Info Added
-- Address and email visible on Login and Register pages (footer)
-- Privacy & Policy modal in Register page also shows contact info
-- Address: Islamabad Expressway, Islamabad, Pakistan
-- Email: getreach.support@gmail.com
-
-### Deployment Status
-- **Frontend:** Netlify (deploy from `IHSAN-ANWAR/getReach`, build: `npm run build`, publish: `dist`)
-- **Backend:** Render (or Back4App) — Docker container, `server/` folder, Node 20
-- **Database:** MongoDB Atlas (already connected)
-- `public/_redirects` added for Netlify SPA routing
-- `vercel.json` added for Vercel SPA routing (if switching)
-
-### Backend Environment Variables
-Set these in Render/Back4App → Settings → Environment Variables:
-```
-MONGODB_URI=
-PORT=5000
-JWT_SECRET=
-PAKFOLLOWERS_API_URL=
-PAKFOLLOWERS_API_KEY=
-MARKUP_MULTIPLIER=2
-ADMIN_USERNAME=getreach_admin
-ADMIN_PASSWORD=
-EMAIL_USER=
-EMAIL_PASS=
-ADMIN_ALERT_EMAIL=
-FRONTEND_URL=
-RENDER_SERVICE_URL=https://your-app.onrender.com   ← enables keep-alive ping
-```
-
-### Frontend Environment Variable (Netlify)
-```
-VITE_API_URL = https://<your-backend-url>
-```
-
----
-
-## Tech Stack — Full Library Reference
-
-### Backend
+### Backend (PHP)
 | Library | Version | Purpose |
 |---|---|---|
-| `express` | v5 | HTTP server & REST API routing |
-| `mongoose` | v9 | MongoDB ODM — schemas, models, queries |
-| `ioredis` | v5 | Redis client — login cache (5-min TTL) |
-| `jsonwebtoken` | v9 | JWT generation & verification for auth |
-| `bcryptjs` | v3 | Password hashing (rounds: 10) |
-| `helmet` | v8 | Security HTTP headers |
-| `compression` | v1 | Gzip response compression |
-| `express-rate-limit` | v6 | Auth route throttling |
-| `nodemailer` | v8 | Password reset + low-balance alert emails |
-| `cors` | v2 | Cross-origin request handling |
-| `dotenv` | v17 | Environment variable loading |
-| `cluster` (built-in) | Node.js | Multi-core process forking |
-| `os` (built-in) | Node.js | CPU core detection |
+| PHP | 8.1+ | Server-side language |
+| `mongodb/mongodb` | ^1.19 | MongoDB driver — queries, models |
+| `phpmailer/phpmailer` | ^6.9 | Password reset + alert emails |
+| `ext-mongodb` | — | PHP MongoDB extension (XAMPP) |
 
-### Frontend
+### Frontend (React)
 | Library | Version | Purpose |
 |---|---|---|
 | `react` | v19 | UI component framework |
@@ -100,197 +34,13 @@ VITE_API_URL = https://<your-backend-url>
 | `vite` v8 | Frontend bundler & dev server |
 | `@vitejs/plugin-react` | React fast-refresh for Vite |
 | `eslint` v9 | Code linting |
-| `k6` | Load testing (1k concurrent users) |
 
 ### Infrastructure
 | Service | Purpose |
 |---|---|
-| MongoDB Atlas | Cloud database (users, orders, tickets, fund requests, service overrides) |
-| Redis | Login session cache — reduces DB hits on repeated logins |
-| Node.js Cluster | One worker process per CPU core — OS round-robin load balancing |
-| Gmail (Nodemailer) | Password reset emails + low API balance alerts |
-| Keep-Alive Ping | Self-ping every 14 min to prevent Render free tier sleep |
-
----
-
-## System Architecture
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                        CLIENT (Browser)                          │
-│                                                                  │
-│   User Dashboard                  Admin Panel                    │
-│   ├── New Order                   ├── Dashboard (stats/charts)   │
-│   ├── Services (browse)           ├── User Base                  │
-│   ├── My Orders                   ├── Services Manager           │
-│   ├── Add Funds                   ├── Fund Requests              │
-│   ├── Support Tickets             ├── Support CRM                │
-│   ├── FAQ                         ├── Revenue                    │
-│   └── Profile                     └── Settings                   │
-└──────────────────────┬───────────────────────────────────────────┘
-                       │  HTTP REST  :5000
-                       ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                  Node.js Cluster  (server.js)                    │
-│                                                                  │
-│  ┌─────────────┐   forks 1 worker per CPU core                   │
-│  │   PRIMARY   │──────────────────────────────────────────────┐  │
-│  │   PROCESS   │                                              │  │
-│  └─────────────┘                                              │  │
-│        │ auto-restarts crashed workers                        │  │
-│        ▼                                                      ▼  │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐          │
-│  │ Worker 1 │  │ Worker 2 │  │ Worker 3 │  │ Worker N │          │
-│  │ :5000    │  │ :5000    │  │ :5000    │  │ :5000    │          │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘          │
-│       └─────────────┴─────────────┴──────────────┘               │
-│                  OS Round-Robin Load Balancing                   │
-│                                                                  │
-│  Middleware stack per worker:                                    │
-│  cors → helmet → compression → express.json → rate-limit         │
-│                                                                  │
-│  Background tasks (per worker):                                  │
-│  ├── API balance check  (every 1 hour)                           │
-│  └── Keep-alive ping    (every 14 min → /health)                 │
-└──────────┬───────────────────────────┬───────────────────────────┘
-           │                           │
-    ┌──────▼──────┐             ┌──────▼──────┐
-    │   MongoDB   │             │    Redis    │
-    │   Atlas     │             │  :6379      │
-    │             │             │             │
-    │ collections:│             │ login cache │
-    │ users       │             │ key: user:  │
-    │ orders      │             │   {email}   │
-    │ tickets     │             │ TTL: 5 min  │
-    │ fundrequests│             └─────────────┘
-    │ serviceoverrides          (graceful fallback
-    │             │              if unavailable)
-    └─────────────┘
-           │
-    ┌──────▼──────┐
-    │  Third-Party│
-    │  Growth API │
-    │             │
-    │ action:     │
-    │  services   │
-    │  add        │
-    │  status     │
-    │  balance    │
-    └─────────────┘
-```
-
----
-
-## Keep-Alive — Render Free Tier
-
-Render's free tier spins down after **15 minutes** of inactivity. The server pings itself every 14 minutes to stay awake.
-
-```
-setInterval → GET /health (every 14 min)
-      │
-      ├── Response 200 → logs "🏓 Keep-alive ping → [url] [200]"
-      └── Timeout/fail → logs warning, retries next interval
-
-Requires: RENDER_SERVICE_URL=https://your-app.onrender.com
-```
-
-**Note:** On Render free tier, the first request after a cold start may take 30–60 seconds. With keep-alive enabled, the server stays warm and responds instantly.
-
----
-
-## Data Flow Diagrams
-
-### 1. Service Fetch & Display Flow
-
-```
-Third-Party Growth API
-        │
-        │  GET action=services
-        │  (raw list: serviceId, name, rate USD, min, max)
-        ▼
-  orders.js route
-        │
-        ├── Check in-process cache (10-min TTL)
-        │   └── If fresh → return cached immediately
-        │
-        ├── Fetch ServiceOverride from MongoDB
-        │   (admin customizations: name, rate, hidden, category)
-        │
-        ├── Merge raw API data + overrides
-        │   raw.rate × MARKUP_MULTIPLIER × 315 = PKR display rate
-        │   override.rate wins if set by admin
-        │
-        ├── Filter out hidden services
-        │
-        └── Cache result → return to frontend
-                │
-                ▼
-        ServicesPage.jsx / OrderForm.jsx / LoginPage.jsx (public preview)
-        (user sees: name, category, PKR rate, min/max qty)
-```
-
-### 2. Order Placement Flow
-
-```
-User (OrderForm.jsx)
-  fills: service, link, quantity
-        │
-        │  POST /api/orders/place-order
-        ▼
-  Server (orders.js)
-        │
-        ├── Find user → check balance (PKR)
-        ├── Get service from cache → calculate charge
-        ├── balance < charge? → 400 Insufficient balance
-        ├── Call Third-Party Growth API (action=add)
-        ├── user.balance -= charge → save to MongoDB
-        ├── Create Order document in MongoDB
-        └── Return { success, order, newBalance }
-
-Background sync (every 2 min):
-  Order.find({ status: active }) → action=status → update MongoDB
-```
-
-### 3. Payment / Fund Deposit Flow
-
-```
-User → POST /api/fund-requests { method, amount, tid }
-        │
-        ├── Validate: amount ≥ 50, TID not duplicate
-        └── Save FundRequest { status: "pending" }
-
-Admin → PATCH /api/fund-requests/:id { status: "approved"/"rejected" }
-        │
-        └── If approved: User.balance += amount
-```
-
-### 4. Authentication Flow
-
-```
-POST /api/login { email, password }
-        │
-        ├── Admin bypass (from .env) → JWT (no DB hit)
-        ├── Redis cache check → hit: use cached user
-        ├── MongoDB fallback → cache result (5 min TTL)
-        ├── bcrypt.compare → wrong? → 401
-        └── jwt.sign({ id, role }, JWT_SECRET, 1d) → return token
-```
-
----
-
-## Component Architecture
-
-```
-App.jsx  (auth state, routing)
-  │
-  ├── /admin/*  →  AdminLayout.jsx
-  │     └── AdminDashboard, Users, Services, FundRequests,
-  │         Tickets, Revenue, Settings, Profile
-  │
-  └── /*  →  DashboardLayout.jsx
-        └── NewOrder, Services, MyOrders, AddFunds,
-            Tickets, Profile, Refill, FAQ
-```
+| XAMPP (Apache) | Local PHP server |
+| MongoDB Atlas | Cloud database |
+| Gmail (PHPMailer) | Password reset + low balance alert emails |
 
 ---
 
@@ -298,31 +48,162 @@ App.jsx  (auth state, routing)
 
 ```
 getreach/
-├── server/
-│   ├── server.js              # Cluster entry, auth, tickets, fund requests, keep-alive
+├── backend-php/
+│   ├── index.php              # Main entry point — router
 │   ├── .env                   # Environment config (never commit)
-│   ├── models/
-│   │   ├── Order.js
-│   │   ├── FundRequest.js
-│   │   └── ServiceOverride.js
+│   ├── .env.example           # Template
+│   ├── .htaccess              # Apache URL rewriting
+│   ├── composer.json          # PHP dependencies
+│   ├── config/
+│   │   ├── database.php       # MongoDB connection
+│   │   ├── env.php            # .env loader
+│   │   └── jwt.php            # JWT encode/decode helpers
+│   ├── middleware/
+│   │   └── auth.php           # requireAdmin() middleware
 │   ├── routes/
-│   │   └── orders.js
+│   │   ├── auth.php           # register, login, admin-auth, forgot/reset password
+│   │   ├── users.php          # user list, reset password, add balance
+│   │   ├── orders.php         # services, place order, order status, cancel
+│   │   ├── fund_requests.php  # deposit requests
+│   │   ├── tickets.php        # support tickets
+│   │   └── admin.php          # stats, revenue
 │   └── utils/
-│       └── pakfollowers.js
+│       ├── email.php          # PHPMailer wrapper
+│       ├── pakfollowers.php   # Growth API wrapper
+│       └── response.php       # jsonResponse() / jsonError() helpers
 │
 ├── src/
 │   ├── App.jsx
+│   ├── config.js              # API_BASE URL
 │   ├── components/
-│   │   ├── LoginPage.jsx      # Includes public services preview section
-│   │   ├── RegisterPage.jsx   # Trust badges + social proof + About section
+│   │   ├── LoginPage.jsx
+│   │   ├── RegisterPage.jsx
 │   │   └── ...
 │   ├── pages/
 │   └── admin/
 │
-├── k6_load_test.js
+├── public/
 ├── vite.config.js
 └── package.json
 ```
+
+---
+
+## Local Setup
+
+### Requirements
+- XAMPP (PHP 8.1+, Apache)
+- Composer
+- Node.js 20+
+- MongoDB Atlas account
+
+### 1. PHP Backend
+
+```bash
+cd C:\xampp\htdocs\getReach\backend-php
+composer install
+```
+
+Copy `.env.example` to `.env` and fill in your values:
+```env
+MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/getReach
+JWT_SECRET=your_strong_jwt_secret_here
+
+PAKFOLLOWERS_API_URL=https://pakfollowers.com/api/v2
+PAKFOLLOWERS_API_KEY=your_api_key_here
+MARKUP_MULTIPLIER=2
+
+ADMIN_USERNAME=your_admin_username
+ADMIN_PASSWORD=your_admin_password_here
+
+EMAIL_USER=your_gmail@gmail.com
+EMAIL_PASS=your_gmail_app_password
+ADMIN_ALERT_EMAIL=your_gmail@gmail.com
+FRONTEND_URL=http://localhost:5173
+```
+
+Enable MongoDB extension in `C:\xampp\php\php.ini`:
+```ini
+extension=mongodb
+```
+
+Start Apache from XAMPP Control Panel.
+
+Test backend:
+```
+http://localhost/getReach/backend-php/health
+```
+Expected: `{"status":"ok"}`
+
+### 2. Frontend
+
+```bash
+# In project root
+npm install
+npm run dev
+```
+
+Frontend: `http://localhost:5173`
+API: `http://localhost/getReach/backend-php`
+
+---
+
+## Environment Variables
+
+### Backend (`backend-php/.env`)
+```env
+MONGODB_URI=            # MongoDB Atlas connection string
+JWT_SECRET=             # JWT signing secret
+PAKFOLLOWERS_API_URL=   # Growth API endpoint
+PAKFOLLOWERS_API_KEY=   # Growth API key
+MARKUP_MULTIPLIER=2     # Price markup (2 = 100% profit)
+ADMIN_USERNAME=         # Admin login username
+ADMIN_PASSWORD=         # Admin login password
+EMAIL_USER=             # Gmail address
+EMAIL_PASS=             # Gmail App Password (16 chars)
+ADMIN_ALERT_EMAIL=      # Receives low API balance alerts
+FRONTEND_URL=           # Used in password reset email links
+```
+
+### Frontend (`.env` or Vite env)
+```env
+VITE_API_URL=http://localhost/getReach/backend-php
+```
+
+---
+
+## API Endpoints
+
+| Method | URL | Description |
+|---|---|---|
+| GET | /health | Health check |
+| POST | /api/register | Register user |
+| POST | /api/login | Login |
+| POST | /api/admin-auth | Admin login |
+| POST | /api/forgot-password | Send reset email |
+| POST | /api/reset-password | Reset password |
+| GET | /api/users | All users (admin) |
+| PATCH | /api/users/:id/reset-password | Admin reset user password |
+| PATCH | /api/users/:id/add-balance | Admin add balance |
+| GET | /api/orders/balance | API balance |
+| GET | /api/orders/services | Services list |
+| POST | /api/orders/place-order | Place order |
+| GET | /api/orders/order-status/:id | Order status |
+| GET | /api/orders/all | All orders (admin) |
+| GET | /api/orders/user/:userId | User orders |
+| POST | /api/orders/cancel/:id | Cancel order |
+| GET | /api/orders/admin/services | Admin services list |
+| PUT | /api/orders/admin/services/:id | Save service override |
+| DELETE | /api/orders/admin/services/:id | Delete service override |
+| POST | /api/fund-requests | Submit fund request |
+| GET | /api/fund-requests/user/:userId | User fund requests |
+| GET | /api/fund-requests | All fund requests (admin) |
+| PATCH | /api/fund-requests/:id | Approve/reject fund request |
+| POST | /api/tickets | Create ticket |
+| GET | /api/tickets | Get tickets |
+| PATCH | /api/tickets/:id | Update ticket |
+| GET | /api/admin/stats | Dashboard stats |
+| GET | /api/admin/revenue | Revenue data |
 
 ---
 
@@ -338,64 +219,6 @@ User charge  = (display_rate / 1000) × quantity   [PKR]
 API cost     = (raw_rate / 1000) × quantity        [USD]
 Your profit  = user_charge − (api_cost × 315)      [PKR]
 ```
-
----
-
-## Environment Variables
-
-```env
-MONGODB_URI=            # MongoDB Atlas connection string
-PORT=5000
-JWT_SECRET=             # JWT signing secret
-PAKFOLLOWERS_API_URL=   # Growth API endpoint
-PAKFOLLOWERS_API_KEY=   # Growth API key
-MARKUP_MULTIPLIER=2     # Price markup (2 = 100% profit)
-REDIS_URL=              # redis://127.0.0.1:6379 (optional)
-EMAIL_USER=             # Gmail address
-EMAIL_PASS=             # Gmail App Password (16 chars)
-ADMIN_ALERT_EMAIL=      # Receives low API balance alerts
-FRONTEND_URL=           # Used in reset email links
-ADMIN_USERNAME=         # Admin login username
-ADMIN_PASSWORD=         # Admin login password
-RENDER_SERVICE_URL=     # https://your-app.onrender.com (enables keep-alive ping)
-```
-
----
-
-## Running Locally
-
-```bash
-npm install
-
-# Terminal 1 — backend
-node server/server.js
-
-# Terminal 2 — frontend
-npm run dev
-```
-
-Frontend: `http://localhost:5173`  
-API: `http://localhost:5000`
-
-Redis is optional — server falls back to MongoDB-only if unavailable.
-
----
-
-## Scalability
-
-The app is built for scale:
-- Node.js cluster (1 worker per CPU core, auto-restart on crash)
-- Redis login cache (~80% fewer DB hits on repeated logins)
-- MongoDB connection pooling (20 connections per worker)
-- Gzip compression + Helmet security headers
-- Nginx load balancer with `least_conn` routing
-
-| Infrastructure | Concurrent Users |
-|---|---|
-| Single server, 4 cores | ~500 |
-| 3× instances + Nginx | ~3,000 |
-| 10× instances + managed Redis + Atlas M30 | ~20,000 |
-| 30× instances + CDN + Atlas M50+ | ~100,000 |
 
 ---
 
@@ -407,153 +230,6 @@ Username:  ADMIN_USERNAME (from .env)
 Password:  ADMIN_PASSWORD (from .env)
 ```
 
-Brute-force protection: max 10 attempts per IP per 15 minutes.
-
----
-
-## Recent Changes (April 2026)
-
-### Contact Info Added
-- Address and email now visible on Login and Register pages (footer)
-- Privacy & Policy modal in Register page also shows contact info
-- Address: Islamabad Expressway, Islamabad, Pakistan
-- Email: getreach.support@gmail.com
-- Replaced emoji icons (📍✉️) with proper `react-icons` (`FaMapMarkerAlt`, `FaEnvelope`)
-
-### Register Page
-- Name field placeholder changed from "Agency Owner Name" → "Owner Name"
-
-### Admin Login Fix
-- `.env` `ADMIN_PASSWORD` value had quotes causing mismatch — removed quotes
-- Admin credentials: username `getreach_admin`, password `adm!`
-
-### Deployment Status
-- **Frontend:** Netlify (deploy from `IHSAN-ANWAR/getReach`, build: `npm run build`, publish: `dist`)
-- **Backend:** Back4App (Docker container, `server/` folder, Node 20)
-- **Database:** MongoDB Atlas (already connected)
-- `public/_redirects` added for Netlify SPA routing
-- `vercel.json` added for Vercel SPA routing (if switching back)
-- `Dockerfile` at root + `server/Dockerfile` for Back4App
-
-### Backend Environment Variables (Back4App)
-Set these in Back4App → Settings → Environment Variables:
-```
-MONGODB_URI, PORT=5000, JWT_SECRET, PAKFOLLOWERS_API_URL, PAKFOLLOWERS_API_KEY,
-MARKUP_MULTIPLIER=2, ADMIN_USERNAME=getreach_admin, ADMIN_PASSWORD=GetReach2026,
-EMAIL_USER, EMAIL_PASS, ADMIN_ALERT_EMAIL, FRONTEND_URL, RENDER_SERVICE_URL
-```
-
-### Frontend Environment Variable (Netlify)
-```
-VITE_API_URL = https://<your-back4app-url>.b4a.run
-```
-
-### Auth & Forms
-- Login form: custom validation (no HTML `required`), inline error messages, no alert popups
-- Register form: name/email/password validation with red border + error text
-- Google Sign-In button shows "Coming Soon" modal
-- Admin login: "Forgot Password?" button added
-- Pre-filled demo credentials removed from login form
-
-### Reviews System (User-Facing)
-- Reviews page in sidebar (`/reviews`) with 30 dummy reviews
-- Heart like system — red FaHeart, localStorage persisted, base counts pre-seeded
-- Submit Review form with drag-and-drop screenshot upload
-
-### Reviews Manager (Admin Panel)
-- `/admin/reviews` — edit, hide/show, delete reviews
-- Stats: Total, Visible, Hidden, Avg Rating
-- Add Review modal
-- Full-width layout, react-icons only (no emojis)
-
-### Admin Panel Extras
-- Bulk "Publish All" button in Services Manager
-- User Management: Add Balance modal + Reset Password modal
-- Admin login: Forgot Password flow
-
-### Bug Fixes
-- Duplicate `API_BASE` import in AdminLayout removed (was breaking Vercel build)
-- `FaShieldAlt` missing import in RegisterPage fixed (blank screen bug)
-- `showPolicy` state missing in RegisterPage fixed
-- `trust proxy` added to Express for Back4App reverse proxy
-- Admin password `#` character issue fixed (use `GetReach2026` without special chars)
-- Self-ping every 14 min to prevent sleep (uses `RENDER_SERVICE_URL` env var)
-
----
-
-### Reviews System (User-Facing)
-- Added a **Reviews** page in the user sidebar (`/reviews`)
-- 30 dummy customer reviews with realistic names, Urdu/English mixed text, service tags, and dates
-- Each review card shows: initial avatar (colored by user id), star rating, review text, date
-- **Heart like system** — red `FaHeart` button on each card, click to like/unlike, count updates live, liked state persists in `localStorage` across page refreshes, base counts pre-seeded (22–95) so reviews don't start at zero
-- Full-width layout, responsive grid (auto-fill, 300px min columns)
-- **Submit Review form** — name, service used, star rating picker, review text, optional screenshot upload (drag & drop or click to browse), success state after submit
-
-### Reviews Manager (Admin Panel)
-- Added **Reviews** nav item in admin sidebar (`/admin/reviews`)
-- Stats bar: Total Reviews, Visible, Hidden, Avg Rating — all with react-icons (no emojis)
-- Full list of all 30 reviews with inline edit mode (name, service, rating, text, date)
-- Per-review actions: Edit (inline), Show/Hide toggle (`FaEye`/`FaEyeSlash`), Delete (with confirm modal)
-- Add Review button — modal form to add new reviews
-- Full-width layout (no maxWidth cap)
-
-### Admin Login Fix
-- `.env` password had `#` character treated as comment — wrapped in quotes to fix truncation
-- Added dedicated `/api/admin-auth` endpoint (bypasses rate limiter which was blocking after failed attempts)
-- Admin login page now hits `/api/admin-auth` instead of `/api/login`
-- Killed zombie node processes that were serving stale code
-
----
-
-## Tech Stack — Full Library Reference
-
-### Backend
-| Library | Version | Purpose |
-|---|---|---|
-| `express` | v5 | HTTP server & REST API routing |
-| `mongoose` | v9 | MongoDB ODM — schemas, models, queries |
-| `ioredis` | v5 | Redis client — login cache (5-min TTL) |
-| `jsonwebtoken` | v9 | JWT generation & verification for auth |
-| `bcryptjs` | v3 | Password hashing (rounds: 10) |
-| `helmet` | v8 | Security HTTP headers |
-| `compression` | v1 | Gzip response compression |
-| `express-rate-limit` | v6 | Auth route throttling |
-| `nodemailer` | v8 | Password reset + low-balance alert emails |
-| `cors` | v2 | Cross-origin request handling |
-| `dotenv` | v17 | Environment variable loading |
-| `cluster` (built-in) | Node.js | Multi-core process forking |
-| `os` (built-in) | Node.js | CPU core detection |
-
-### Frontend
-| Library | Version | Purpose |
-|---|---|---|
-| `react` | v19 | UI component framework |
-| `react-dom` | v19 | DOM rendering |
-| `react-router-dom` | v7 | Client-side routing |
-| `framer-motion` | v12 | Page & component animations |
-| `recharts` | v2 | Admin revenue & stats charts |
-| `react-countup` | v6 | Animated number counters |
-| `react-icons` | v5 | Icon library (FontAwesome set) |
-| `bootstrap` | v5 | Grid system & utility classes |
-| `axios` | v1 | HTTP client for API calls |
-| `canvas-confetti` | v1 | Confetti animation on order success |
-
-### Dev & Build
-| Tool | Purpose |
-|---|---|
-| `vite` v8 | Frontend bundler & dev server |
-| `@vitejs/plugin-react` | React fast-refresh for Vite |
-| `eslint` v9 | Code linting |
-| `k6` | Load testing (1k concurrent users) |
-
-### Infrastructure
-| Service | Purpose |
-|---|---|
-| MongoDB Atlas | Cloud database (users, orders, tickets, fund requests, service overrides) |
-| Redis | Login session cache — reduces DB hits on repeated logins |
-| Node.js Cluster | One worker process per CPU core — OS round-robin load balancing |
-| Gmail (Nodemailer) | Password reset emails + low API balance alerts |
-
 ---
 
 ## System Architecture
@@ -571,451 +247,149 @@ VITE_API_URL = https://<your-back4app-url>.b4a.run
 │   ├── FAQ                         ├── Revenue                    │
 │   └── Profile                     └── Settings                   │
 └──────────────────────┬───────────────────────────────────────────┘
-                       │  HTTP REST  :5000
+                       │  HTTP REST
                        ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                  Node.js Cluster  (server.js)                    │
+│              PHP Backend (Apache / XAMPP)                        │
+│              http://localhost/getReach/backend-php               │
 │                                                                  │
-│  ┌─────────────┐   forks 1 worker per CPU core                   │
-│  │   PRIMARY   │──────────────────────────────────────────────┐  │
-│  │   PROCESS   │                                              │  │
-│  └─────────────┘                                              │  │
-│        │ auto-restarts crashed workers                        │  │
-│        ▼                                                      ▼  │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐          │
-│  │ Worker 1 │  │ Worker 2 │  │ Worker 3 │  │ Worker N │          │
-│  │ :5000    │  │ :5000    │  │ :5000    │  │ :5000    │          │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘          │
-│       └─────────────┴─────────────┴──────────────┘               │
-│                  OS Round-Robin Load Balancing                   │
+│  index.php  →  Router  →  routes/*.php                           │
 │                                                                  │
-│  Middleware stack per worker:                                    │
-│  cors → helmet → compression → express.json → rate-limit         │
-└──────────┬───────────────────────────┬───────────────────────────┘
-           │                           │
-    ┌──────▼──────┐             ┌──────▼──────┐
-    │   MongoDB   │             │    Redis    │
-    │   Atlas     │             │  :6379      │
-    │             │             │             │
-    │ collections:│             │ login cache │
-    │ users       │             │ key: user:  │
-    │ orders      │             │   {email}   │
-    │ tickets     │             │ TTL: 5 min  │
-    │ fundrequests│             └─────────────┘
-    │ serviceoverrides          (graceful fallback
-    │             │              if unavailable)
-    └─────────────┘
+│  Middleware: CORS → JWT auth → route handler                     │
+└──────────┬───────────────────────────────────────────────────────┘
            │
-    ┌──────▼──────┐
-    │  Third-Party│
-    │  Growth API │
-    │             │
-    │ action:     │
-    │  services   │
-    │  add        │
-    │  status     │
-    │  balance    │
-    └─────────────┘
+    ┌──────▼──────┐             ┌──────────────┐
+    │   MongoDB   │             │  Growth API  │
+    │   Atlas     │             │ (PakFollowers│
+    │             │             │    API v2)   │
+    │ collections:│             │              │
+    │ users       │             │ action:      │
+    │ orders      │             │  services    │
+    │ tickets     │             │  add         │
+    │ fund_reqs   │             │  status      │
+    │ svc_overrides             │  balance     │
+    └─────────────┘             └──────────────┘
 ```
 
 ---
 
-## Data Flow Diagrams
+## Data Flow
 
-### 1. Service Fetch & Display Flow
-
+### Order Placement
 ```
-Third-Party Growth API
-        │
-        │  GET action=services
-        │  (raw list: serviceId, name, rate USD, min, max)
-        ▼
-  orders.js route
-        │
-        ├── Check in-process cache (10-min TTL)
-        │   └── If fresh → return cached immediately
-        │
-        ├── Fetch ServiceOverride from MongoDB
-        │   (admin customizations: name, rate, hidden, category)
-        │
-        ├── Merge raw API data + overrides
-        │   raw.rate × MARKUP_MULTIPLIER × 315 = PKR display rate
-        │   override.rate wins if set by admin
-        │
-        ├── Filter out hidden services
-        │
-        └── Cache result → return to frontend
-                │
-                ▼
-        ServicesPage.jsx / OrderForm.jsx
-        (user sees: name, category, PKR rate, min/max qty)
-
-
-Admin Edit Flow:
-        AdminServicesPage.jsx
-                │
-                │  PUT /api/orders/admin/services/:serviceId
-                │  { name, rate, category, min, max, hidden }
-                ▼
-        ServiceOverride saved to MongoDB
-                │
-                └── servicesCache = null  ← cache busted immediately
-                    Next user request fetches fresh merged data
-```
-
----
-
-### 2. Order Placement Flow
-
-```
-User (OrderForm.jsx)
-  fills: service, link, quantity
+User fills: service, link, quantity
         │
         │  POST /api/orders/place-order
-        │  { userId, serviceId, link, quantity }
         ▼
-  Server (orders.js)
-        │
-        ├── Find user in MongoDB → check balance (PKR)
-        │
-        ├── Get service from cache → calculate charge
-        │   charge = (rate_PKR / 1000) × quantity
-        │
-        ├── balance < charge? → 400 Insufficient balance
-        │
-        ├── Call Third-Party Growth API
-        │   action=add, service, link, quantity
-        │   └── Returns: { order: apiOrderId }
-        │
-        ├── user.balance -= charge  → save to MongoDB
-        │
-        ├── Create Order document in MongoDB
-        │   { userId, serviceId, link, quantity,
-        │     price (PKR), apiCost (USD), apiOrderId, status: pending }
-        │
+  PHP Backend
+        ├── Find user → check balance (PKR)
+        ├── Get service → calculate charge
+        ├── balance < charge? → 400 error
+        ├── Call Growth API (action=add)
+        ├── user.balance -= charge → save to MongoDB
+        ├── Create Order in MongoDB
         └── Return { success, order, newBalance }
-                │
-                ▼
-        Frontend: updateBalance() → localStorage + React state
-        Order appears in MyOrdersPage instantly
-
-Background sync (every 2 min):
-  Order.find({ status: active })
-        │
-        │  action=status, order=apiOrderId
-        ▼
-  Third-Party API → returns current status
-        │
-        └── Update order.status in MongoDB
-            (pending → processing → completed/partial/cancelled)
 ```
 
----
-
-### 3. Payment / Fund Deposit Flow
-
+### Fund Deposit
 ```
-User (AddFundsPage.jsx)
-  fills: method (EasyPaisa/JazzCash), amount, TID
+User submits: method, amount, TID
         │
         │  POST /api/fund-requests
-        │  { userId, method, amount, tid }
         ▼
-  Server
+  Saved as "pending"
         │
-        ├── Validate: amount ≥ 50, TID not duplicate
-        ├── Block if user role = admin
-        └── Save FundRequest { status: "pending" }
-                │
-                ▼
-        Admin (AdminFundRequestsPage.jsx)
-        sees pending request in table
-                │
-                │  Admin manually verifies TID in EasyPaisa/JazzCash app
-                │
-                │  PATCH /api/fund-requests/:id
-                │  { status: "approved" / "rejected", note }
-                ▼
-        Server
-                │
-                ├── If approved:
-                │   User.balance += amount (PKR)
-                │   FundRequest.status = "approved"
-                │
-                └── If rejected:
-                    FundRequest.status = "rejected"
-                    FundRequest.note = reason
-
-        User sees updated balance on next login / page refresh
+        ▼
+  Admin verifies TID manually → PATCH /api/fund-requests/:id
+        │
+        ├── approved → User.balance += amount
+        └── rejected → note saved
 ```
 
----
-
-### 4. Authentication Flow
-
+### Authentication
 ```
-Login Request
-  POST /api/login { email, password }
+POST /api/login { email, password }
         │
-        ├── Admin bypass check
-        │   email === ADMIN_USERNAME && password === ADMIN_PASSWORD  (from .env)
-        │   Brute-force: max 10 attempts/IP per 15 min (express-rate-limit)
-        │   └── Return admin JWT (no DB hit)
-        │
-        ├── Check Redis cache
-        │   key: user:{email}
-        │   └── Hit  → use cached user object
-        │   └── Miss → query MongoDB, cache result (5 min TTL)
-        │
-        ├── bcrypt.compare(password, user.password)
-        │   └── Legacy plain-text? → migrate to bcrypt on login
-        │
-        ├── Wrong password → 401
-        │
-        └── jwt.sign({ id, role }, JWT_SECRET, { expiresIn: 1d })
-                │
-                ▼
-        Frontend: store token + user in localStorage
-        React state updated → redirect to dashboard
-
-Token used on protected routes:
-  Authorization: Bearer <token>
-  Server: jwt.verify() → extract { id, role }
-```
-
----
-
-### 5. Email Flow
-
-```
-Password Reset:
-  User clicks "Forgot Password" → POST /api/forgot-password
-        │
+        ├── Admin bypass (from .env) → JWT
         ├── Find user in MongoDB
-        ├── Generate crypto.randomBytes(32) token
-        ├── Save token + expiry (1 hour) to user document
-        └── Nodemailer → Gmail SMTP
-            To: user email
-            Body: reset link with token
-                    │
-                    ▼
-            User clicks link → /reset-password?token=xxx
-            POST /api/reset-password { token, newPassword }
-                    │
-                    ├── Validate token + expiry
-                    ├── bcrypt.hash(newPassword)
-                    └── Save new password, clear token
-
-Low API Balance Alert (runs every 1 hour):
-  setInterval → callGrowthAPI({ action: balance })
-        │
-        ├── balance < $0.32 USD threshold?
-        ├── Last alert > 6 hours ago?
-        └── Nodemailer → Gmail SMTP
-            To: ADMIN_ALERT_EMAIL
-            Subject: Low API Balance Alert
-            Body: current balance in USD + PKR
+        ├── password_verify() → wrong? → 401
+        └── jwtEncode({ id, role }, JWT_SECRET, 1d) → return token
 ```
 
 ---
 
-## Component Architecture
+## Features
 
-```
-App.jsx  (auth state, routing)
-  │
-  ├── /admin/*  →  AdminLayout.jsx
-  │     ├── Sidebar nav (NavLink active states)
-  │     ├── Header (notifications dropdown, API balance capsule, profile dropdown)
-  │     └── Routes:
-  │           AdminDashboardPage   — stats cards, charts, recent activity
-  │           AdminUsersPage       — user table, reset password modal
-  │           AdminServicesPage    — service publish/edit/hide/price
-  │           AdminFundRequestsPage— approve/reject deposits
-  │           AdminTicketsPage     — support CRM with reply thread
-  │           AdminRevenuePage     — revenue/profit charts (Recharts)
-  │           AdminSettingsPage    — pricing, API keys, email, admin password
-  │           ProfilePage (admin)  — shows live API credit balance
-  │
-  └── /*  →  DashboardLayout.jsx
-        ├── Sidebar nav (role-aware — Add Funds hidden for admin)
-        ├── Header (balance capsule, dark mode toggle, profile)
-        └── Routes:
-              NewOrderPage    — OrderForm.jsx (service select, link, qty)
-              ServicesPage    — browse all services with modal detail
-              MyOrdersPage    — order history with status badges
-              AddFundsPage    — EasyPaisa/JazzCash deposit form
-              TicketsPage     — create + view support tickets
-              ProfilePage     — user balance, email, change password
-              RefillPage      — refill requests
-              FAQPage         — accordion FAQ
-```
+- **User Dashboard** — place orders, view order history, add funds, support tickets, profile
+- **Admin Panel** — user management, services manager, fund request approval, ticket CRM, revenue charts, settings
+- **Services** — fetched live from Growth API, merged with admin overrides (custom name, rate, category, hidden)
+- **Fund Requests** — manual deposit verification (EasyPaisa / JazzCash)
+- **Support Tickets** — full chat thread between user and admin
+- **Password Reset** — email link via PHPMailer + Gmail SMTP
+- **Reviews** — user-facing reviews page with like system
+- **Dark Mode** — theme toggle persisted in localStorage
 
 ---
 
-## Project Structure
+## Security
+
+### What's Protected
+
+| Threat | Status | How |
+|---|---|---|
+| SQL Injection | ✅ Safe | MongoDB parameterized queries — no raw SQL |
+| XSS (Frontend) | ✅ Safe | React JSX auto-escaping — no dangerouslySetInnerHTML |
+| XSS (Backend) | ✅ Safe | `strip_tags()` + `mb_substr()` on all user input |
+| CSRF | ✅ Safe | JWT Bearer token auth — CSRF only affects cookie-based sessions |
+| Brute Force | ✅ Protected | File-based rate limiter per IP per route |
+| JWT Tampering | ✅ Safe | `hash_equals()` timing-safe signature verification |
+| Password Storage | ✅ Safe | bcrypt cost 10 via `password_hash()` |
+| URL Injection | ✅ Safe | `sanitizeUrl()` — blocks `javascript:` and non-http(s) schemes |
+| PHP Fingerprint | ✅ Hidden | `X-Powered-By` header removed |
+| Sensitive Files | ✅ Blocked | `.htaccess` blocks `.env`, `vendor/`, `config/`, `utils/` direct access |
+| Security Headers | ✅ Set | CSP, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy |
+| ObjectId Injection | ✅ Safe | All MongoDB IDs validated with 24-char hex regex before use |
+
+### Rate Limits (per IP)
+
+| Route | Max Requests | Window |
+|---|---|---|
+| `POST /api/login` | 10 | 15 minutes |
+| `POST /api/register` | 10 | 1 hour |
+| `POST /api/admin-auth` | 5 | 15 minutes |
+| `POST /api/forgot-password` | 5 | 1 hour |
+| `POST /api/reset-password` | 5 | 1 hour |
+
+### Security Headers (Apache via .htaccess)
 
 ```
-getreach/
-├── server/
-│   ├── server.js              # Cluster entry, auth, tickets, fund requests
-│   ├── .env                   # Environment config (never commit)
-│   ├── models/
-│   │   ├── Order.js           # Order schema (userId, serviceId, price, apiCost, status)
-│   │   ├── FundRequest.js     # Deposit schema (userId, method, amount, tid, status)
-│   │   └── ServiceOverride.js # Admin service customization schema
-│   ├── routes/
-│   │   └── orders.js          # Order CRUD + 10-min service cache + admin overrides
-│   └── utils/
-│       └── pakfollowers.js    # Growth API wrapper (action dispatcher)
-│
-├── src/
-│   ├── App.jsx                # Root router + auth state + localStorage sync
-│   ├── main.jsx               # React entry point
-│   ├── index.css              # Global styles + CSS variables
-│   ├── theme.css              # Dark/light theme tokens
-│   ├── context/
-│   │   └── ThemeContext.jsx   # Dark mode context provider
-│   ├── components/
-│   │   ├── DashboardLayout.jsx
-│   │   ├── OrderForm.jsx
-│   │   ├── LoginPage.jsx
-│   │   ├── RegisterPage.jsx
-│   │   ├── StatsCards.jsx
-│   │   ├── SupportPage.jsx
-│   │   ├── DarkModeToggle.jsx
-│   │   ├── LandingInfoPanel.jsx
-│   │   └── TypewriterText.jsx
-│   ├── pages/
-│   │   ├── NewOrderPage.jsx
-│   │   ├── ServicesPage.jsx
-│   │   ├── MyOrdersPage.jsx
-│   │   ├── AddFundsPage.jsx
-│   │   ├── TicketsPage.jsx
-│   │   ├── ProfilePage.jsx
-│   │   ├── RefillPage.jsx
-│   │   ├── FAQPage.jsx
-│   │   └── ResetPasswordPage.jsx
-│   └── admin/
-│       ├── AdminLayout.jsx
-│       ├── AdminLoginPage.jsx
-│       ├── AdminDashboardPage.jsx
-│       ├── AdminUsersPage.jsx
-│       ├── AdminServicesPage.jsx
-│       ├── AdminTicketsPage.jsx
-│       ├── AdminRevenuePage.jsx
-│       ├── AdminFundRequestsPage.jsx
-│       └── AdminSettingsPage.jsx
-│
-├── k6_load_test.js            # Load test — 1k concurrent users, 3 scenarios
-├── vite.config.js
-├── eslint.config.js
-└── package.json
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-XSS-Protection: 1; mode=block
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: geolocation=(), microphone=(), camera=()
+Content-Security-Policy: default-src 'self'; ...
 ```
+
+### Input Sanitization (backend-php/utils/sanitize.php)
+
+All user input is sanitized before use:
+
+- `sanitizeString()` — strip_tags + trim + max length
+- `sanitizeEmail()` — filter_var FILTER_VALIDATE_EMAIL
+- `sanitizeUrl()` — validates http/https only, blocks javascript: protocol
+- `sanitizePositiveNumber()` — float validation, must be > 0
+- `sanitizePositiveInt()` — integer validation, must be > 0
+- `sanitizeAlphanumeric()` — strips non-alphanumeric chars (used for TIDs)
+- `isValidObjectId()` — 24-char hex regex for all MongoDB IDs
+
+### CORS
+
+Origin whitelist from `FRONTEND_URL` env var — wildcard `*` removed.
 
 ---
 
-## Pricing Model
+## Contact
 
-```
-Growth API raw rate (USD per 1000 units)
-        × MARKUP_MULTIPLIER  (env var, default: 2 = 100% profit)
-        × 315                (USD → PKR conversion rate)
-        ─────────────────────────────────────────────
-        = Display rate shown to user (PKR per 1000)
-
-User charge  = (display_rate / 1000) × quantity   [PKR]
-API cost     = (raw_rate / 1000) × quantity        [USD]
-Your profit  = user_charge − (api_cost × 315)      [PKR]
-```
-
-| Component | Example |
-|---|---|
-| Raw API rate | $0.50 / 1000 |
-| After markup (×2) | $1.00 / 1000 |
-| In PKR (×315) | Rs 315 / 1000 |
-| User orders 500 | Rs 157.50 charged |
-| API costs you | $0.25 = Rs 78.75 |
-| Your profit | Rs 78.75 |
-
----
-
-## Environment Variables
-
-```env
-MONGODB_URI=            # MongoDB Atlas connection string
-PORT=5000               # Server port (default 5000)
-JWT_SECRET=             # JWT signing secret (keep strong)
-API_URL=                # Growth API endpoint
-API_KEY=                # Growth API key
-MARKUP_MULTIPLIER=2     # Price markup (2 = 100% profit over API cost)
-REDIS_URL=              # redis://127.0.0.1:6379 (optional, graceful fallback)
-EMAIL_USER=             # Gmail address for sending emails
-EMAIL_PASS=             # Gmail App Password (16 chars, not account password)
-ADMIN_ALERT_EMAIL=      # Receives low API balance alerts
-FRONTEND_URL=           # http://localhost:5173 (used in reset email links)
-ADMIN_USERNAME=         # Admin panel login username (never use default)
-ADMIN_PASSWORD=         # Admin panel login password (use strong password)
-```
-
----
-
-## Running Locally
-
-```bash
-npm install
-
-# Terminal 1 — backend (starts clustered server)
-node server/server.js
-
-# Terminal 2 — frontend
-npm run dev
-```
-
-Frontend: `http://localhost:5173`
-API: `http://localhost:5000`
-
-Redis is optional — if not running, server falls back to MongoDB-only with no cache.
-
----
-
-## Scalability — Can This App Handle 100k Users?
-
-**Yes — with the right infrastructure.** The application code is already built for scale:
-
-- Node.js cluster mode (1 worker per CPU core, auto-restart on crash)
-- Redis login cache (reduces MongoDB hits by ~80% on repeated logins)
-- MongoDB connection pooling (20 connections per worker)
-- Gzip compression + security headers via Helmet
-- Nginx load balancer with `least_conn` routing and keepalive (`docker-compose.yml`)
-- Horizontal scaling via Docker — add more instances with zero code changes
-
-**Scaling tiers:**
-
-| Infrastructure | Concurrent Users |
-|---|---|
-| Single server, 4 cores | ~500 |
-| 3× instances + Nginx (current `docker-compose.yml`) | ~3,000 |
-| 10× instances + managed Redis + Atlas M30 | ~20,000 |
-| 30× instances + CDN + Atlas M50+ | ~100,000 |
-
-**What needs upgrading before 100k:**
-
-1. MongoDB Atlas — upgrade from M0 (free, ~500 connections) to M30+
-2. Redis — swap local Redis for managed service (Upstash or Redis Cloud)
-3. Add more containers in `docker-compose.yml` or migrate to Kubernetes
-4. Cloudflare in front for CDN + DDoS protection on static assets
-
-The code itself is production-ready. Reaching 100k is purely an infrastructure decision.
-
----
-
-## Admin Access
-
-```
-URL:       /admin/login
-Username:  set via ADMIN_USERNAME in server/.env
-Password:  set via ADMIN_PASSWORD in server/.env
-```
-
-Credentials are loaded from `.env` — never hardcoded. Brute-force protection: max 10 attempts per IP per 15 minutes.
+- Address: Islamabad Expressway, Islamabad, Pakistan
+- Email: getreach.support@gmail.com

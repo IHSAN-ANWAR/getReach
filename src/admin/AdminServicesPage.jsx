@@ -136,10 +136,19 @@ const AdminServicesPage = () => {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/admin/services`);
+      const token = localStorage.getItem('gr_token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await axios.get(`${API}/admin/services`, { headers });
       setServices(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
-      console.error(e);
+      const msg = e.response?.data?.error || e.message || 'Unknown error';
+      const status = e.response?.status;
+      console.error('Services load failed:', status, msg);
+      if (status === 401 || status === 403) {
+        alert(`Auth error (${status}): ${msg}\n\nTry logging out and back in.`);
+      } else {
+        alert(`Failed to load services: ${msg}`);
+      }
     } finally {
       setLoading(false);
     }

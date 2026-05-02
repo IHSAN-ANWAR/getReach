@@ -4,8 +4,10 @@ import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid
 } from 'recharts';
+import axios from 'axios';
+import API_BASE from '../config';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API = API_BASE;
 const CARDS = [
   { key: 'totalUsers',   label: 'Total Users',   color: '#ACC8A2', bg: '#1A2517', icon: <FaUsers size={20} /> },
   { key: 'totalOrders',  label: 'Total Orders',  color: '#9B8FE8', bg: '#1C1A2E', icon: <FaShoppingCart size={20} /> },
@@ -38,17 +40,19 @@ export default function AdminDashboardPage() {
   const [apiBalanceLoading, setApiBalanceLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API}/api/admin/stats`)
-      .then(r => r.json())
-      .then(data => { setStats(data); setLoading(false); })
-      .catch(() => setLoading(false));
+    const token = localStorage.getItem('gr_token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    axios.get(`${API}/api/admin/stats`, { headers })
+      .then(r => { setStats(r.data); setLoading(false); })
+      .catch((e) => { console.error('Stats error:', e.response?.status, e.response?.data); setLoading(false); });
   }, []);
 
   const fetchApiBalance = () => {
     setApiBalanceLoading(true);
-    fetch(`${API}/api/orders/balance`)
-      .then(r => r.json())
-      .then(data => { setApiBalance(data); setApiBalanceLoading(false); })
+    const token = localStorage.getItem('gr_token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    axios.get(`${API}/api/orders/balance`, { headers })
+      .then(r => { setApiBalance(r.data); setApiBalanceLoading(false); })
       .catch(() => setApiBalanceLoading(false));
   };
 
@@ -59,7 +63,23 @@ export default function AdminDashboardPage() {
       Loading dashboard...
     </div>
   );
-  if (!stats) return <div style={{ padding: 32, color: '#E88F8F' }}>Failed to load stats.</div>;
+  if (!stats) return (
+    <div style={{ padding: 32 }}>
+      <div style={{ color: '#E88F8F', fontWeight: 700, fontSize: 16, marginBottom: 12 }}>Failed to load stats.</div>
+      <div style={{ fontSize: 13, color: 'rgba(44,36,22,0.5)', marginBottom: 16 }}>
+        Check browser console (F12) for the exact error. Common causes:
+        <ul style={{ marginTop: 8, lineHeight: 2 }}>
+          <li>XAMPP Apache not running</li>
+          <li>Token expired — try logging out and back in</li>
+          <li>Backend returning 401 Unauthorized</li>
+        </ul>
+      </div>
+      <button onClick={() => { setLoading(true); const token = localStorage.getItem('gr_token'); axios.get(`${API}/api/admin/stats`, { headers: { Authorization: `Bearer ${token}` } }).then(r => { setStats(r.data); setLoading(false); }).catch(e => { console.error('Stats retry:', e.response?.status, e.response?.data); setLoading(false); }); }}
+        style={{ padding: '10px 20px', borderRadius: 10, background: '#1A2517', color: '#ACC8A2', border: 'none', fontWeight: 700, cursor: 'pointer' }}>
+        Retry
+      </button>
+    </div>
+  );
 
   const cardValues = {
     totalUsers:   stats.totalUsers,

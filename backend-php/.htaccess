@@ -1,0 +1,39 @@
+RewriteEngine On
+
+# ── Pass Authorization header to PHP (Apache strips it by default) ────────────
+RewriteCond %{HTTP:Authorization} ^(.*)
+RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
+
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
+# ── Block direct access to sensitive files ────────────────────────────────────
+<FilesMatch "\.(env|json|lock|md|sh|log|sql|bak|git)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# ── Block access to config / vendor / utils directly ─────────────────────────
+RewriteRule ^(config|vendor|utils|middleware)/.*$ - [F,L]
+
+# ── Route all requests through index.php ─────────────────────────────────────
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
+
+# ── Security Headers ──────────────────────────────────────────────────────────
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src *;"
+    # Remove server fingerprint
+    Header unset X-Powered-By
+    Header always unset X-Powered-By
+</IfModule>
+
+# ── Hide PHP version ──────────────────────────────────────────────────────────
+<IfModule mod_php.c>
+    php_flag expose_php Off
+</IfModule>

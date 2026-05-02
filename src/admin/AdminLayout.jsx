@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Routes, Route, NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
 import {
   FaUsers, FaTicketAlt, FaChartBar, FaCogs,
   FaSignOutAlt, FaBars, FaTimes, FaUserShield, FaBell, FaLayerGroup,
@@ -60,9 +61,8 @@ const AdminLayout = ({ user, onLogout }) => {
   // ── API Balance for header capsule ──
   const [apiBalance, setApiBalance] = useState(null);
   useEffect(() => {
-    fetch(`${API_BASE}/api/orders/balance`)
-      .then(r => r.json())
-      .then(d => setApiBalance(d?.balance ?? null))
+    axios.get(`${API_BASE}/api/orders/balance`)
+      .then(r => setApiBalance(r.data?.balance ?? null))
       .catch(() => setApiBalance(null));
   }, []);
 

@@ -278,7 +278,7 @@ const DashboardLayout = ({ user, onLogout, updateBalance }) => {
             <Route path="/services" element={<ServicesPage />} />
             <Route path="/add-funds" element={<AddFundsPage user={user} updateBalance={updateBalance} />} />
             <Route path="/orders"  element={<MyOrdersPage user={user} />} />
-            <Route path="/refill"  element={<RefillPage />} />
+            <Route path="/refill"  element={<RefillPage user={user} />} />
             <Route path="/tickets" element={<TicketsPage user={user} />} />
             <Route path="/faq"     element={<FAQPage />} />
             <Route path="/reviews" element={<ReviewsPage />} />

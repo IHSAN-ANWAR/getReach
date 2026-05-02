@@ -2,6 +2,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaUserEdit, FaTrash, FaPlus, FaSearch, FaHistory, FaLock, FaTimes, FaEye, FaEyeSlash } from 'react-icons/fa';
 import axios from 'axios';
+import API_BASE from '../config';
 
 const MOCK_USERS = [
   { id: 1, name: 'Loyal User', email: 'loyal@getreach.pk', balance: 1250, role: 'user', created: '2026-03-15' },
@@ -24,7 +25,7 @@ const AdminUsersPage = () => {
 
   const fetchUsers = async () => {
     try {
-      const resp = await axios.get('http://localhost:5000/api/users');
+      const resp = await axios.get(`${API_BASE}/api/users`);
       setUsers(resp.data);
       setLoading(false);
     } catch (err) {
@@ -41,7 +42,7 @@ const AdminUsersPage = () => {
     setResetting(true);
     setResetMsg('');
     try {
-      await axios.patch(`http://localhost:5000/api/users/${resetTarget._id}/reset-password`, { newPassword });
+      await axios.patch(`${API_BASE}/api/users/${resetTarget._id}/reset-password`, { newPassword });
       setResetMsg('Γ£ô Password reset successfully.');
       setTimeout(() => { setResetTarget(null); setNewPassword(''); setResetMsg(''); }, 1500);
     } catch (err) {

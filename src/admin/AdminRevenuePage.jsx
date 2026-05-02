@@ -4,8 +4,10 @@ import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid, Legend
 } from 'recharts';
+import axios from 'axios';
+import API_BASE from '../config';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API = API_BASE;
 const fmt = (n) => `${Number(n || 0).toFixed(2)}`;
 
 function fillDays(daily, days) {
@@ -37,9 +39,10 @@ export default function AdminRevenuePage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${API}/api/admin/revenue?period=${period}`)
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false); })
+    const token = localStorage.getItem('gr_token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    axios.get(`${API}/api/admin/revenue?period=${period}`, { headers })
+      .then(r => { setData(r.data); setLoading(false); })
       .catch(() => setLoading(false));
   }, [period]);
 
